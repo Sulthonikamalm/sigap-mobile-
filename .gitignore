@@ -1,0 +1,21 @@
+# App Root .gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# Temporary
+*.tmp
+temp/
