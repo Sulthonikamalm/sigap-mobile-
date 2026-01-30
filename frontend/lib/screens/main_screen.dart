@@ -1,0 +1,137 @@
+import 'package:flutter/material.dart';
+import 'package:sigap_mobile/features/account/presentation/pages/account_page.dart';
+import 'package:sigap_mobile/features/account/presentation/pages/guest_account_page.dart';
+
+/// Screen utama dengan navigasi BottomNavigationBar (Beranda, Temanku, Lapor, Wawasan, Akun).
+class MainScreen extends StatefulWidget {
+  final bool isGuest;
+
+  const MainScreen({super.key, this.isGuest = false});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 0;
+
+  // Konfigurasi Warna
+  static const Color primaryColor = Color(0xFF7BA8DC);
+  static const Color primaryTransparentColor = Color(0x857BA8DC);
+  static const Color urgentActionColor = Color(0xFFDC2626);
+  static const Color inactiveColor = Color(0xFF9E9E9E);
+
+  @override
+  Widget build(BuildContext context) {
+    // Daftar halaman navigasi
+    final List<Widget> pages = [
+      const Center(
+          child: Text('Halaman Beranda', style: TextStyle(fontSize: 24))),
+      const Center(
+          child: Text('Halaman Temanku', style: TextStyle(fontSize: 24))),
+      const SizedBox(), // Placeholder Lapor (dihandle FAB)
+      const Center(
+          child: Text('Halaman Wawasan', style: TextStyle(fontSize: 24))),
+      widget.isGuest ? const GuestAccountPage() : const AccountPage(),
+    ];
+
+    return Scaffold(
+      // Menggunakan SafeArea agar konten tidak tertutup status bar atau notch
+      body: SafeArea(
+        child: pages[_selectedIndex],
+      ),
+
+      // Tombol Lapor (Tengah)
+      floatingActionButton: SizedBox(
+        width: 66,
+        height: 66,
+        child: FloatingActionButton(
+          onPressed: () => _onItemTapped(2),
+          elevation: 4,
+          backgroundColor: primaryTransparentColor,
+          shape: const CircleBorder(),
+          child: Container(
+            width: 58,
+            height: 58,
+            decoration: const BoxDecoration(
+              color: urgentActionColor,
+              shape: BoxShape.circle,
+            ),
+            child:
+                const Icon(Icons.shield_rounded, color: Colors.white, size: 30),
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 6.0,
+        color: Colors.white,
+        elevation: 10,
+        padding: EdgeInsets.zero,
+        // Wrap Row dengan SafeArea agar tidak tertutup Home Indicator (garis bawah) di iOS
+        child: SafeArea(
+          child: SizedBox(
+            height: 60,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, Icons.home_rounded, 'Beranda'),
+                _buildNavItem(1, Icons.group_rounded, 'Temanku'),
+                const SizedBox(width: 48), // Spacer FAB
+                _buildNavItem(3, Icons.article_rounded, 'Wawasan'),
+                _buildNavItem(4, Icons.person_rounded, 'Akun'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _onItemTapped(int index) {
+    if (index == 2) {
+      debugPrint("Tombol Lapor Ditekan");
+    }
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  // Builder untuk item navigasi
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final bool isSelected = _selectedIndex == index;
+    final Color currentColor = isSelected ? primaryColor : inactiveColor;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onItemTapped(index),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          decoration: BoxDecoration(
+            border: isSelected
+                ? const Border(top: BorderSide(color: primaryColor, width: 3.0))
+                : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 28, color: currentColor),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: currentColor,
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

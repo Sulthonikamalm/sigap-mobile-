@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sigap_mobile/screens/auth_check_screen.dart';
 
 void main() {
   runApp(const SigapApp());
@@ -15,7 +16,7 @@ class SigapApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: const AuthCheckScreen(),
     );
   }
 }

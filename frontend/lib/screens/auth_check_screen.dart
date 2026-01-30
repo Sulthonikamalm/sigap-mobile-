@@ -1,0 +1,173 @@
+import 'package:flutter/material.dart';
+import 'package:sigap_mobile/screens/main_screen.dart';
+
+class AuthCheckScreen extends StatelessWidget {
+  const AuthCheckScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.deepPurple.shade50,
+              Colors.white,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Spacer(),
+                // Icon / Logo
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.deepPurple.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.verified_user_rounded,
+                    size: 80,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'Akses Pengembangan',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepPurple.shade900,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Pilih status login untuk simulasi alur aplikasi',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey.shade600,
+                    height: 1.5,
+                  ),
+                ),
+                const Spacer(),
+                // Button: Sudah Login
+                _buildPremiumButton(
+                  context,
+                  label: "Sudah Login",
+                  icon: Icons.login_rounded,
+                  color: Theme.of(context).primaryColor,
+                  textColor: Colors.white,
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const MainScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Button: Belum Login
+                _buildPremiumButton(
+                  context,
+                  label: "Belum Login",
+                  icon: Icons.app_registration_rounded,
+                  color: Colors.white,
+                  textColor: Theme.of(context).primaryColor,
+                  isOutlined: true,
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              const MainScreen(isGuest: true)),
+                    );
+                  },
+                ),
+                const Spacer(),
+                Text(
+                  'SIGAP Mobile Dev v0.1',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumButton(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required Color color,
+    required Color textColor,
+    required VoidCallback onPressed,
+    bool isOutlined = false,
+  }) {
+    return Container(
+      height: 60,
+      decoration: BoxDecoration(
+        boxShadow: isOutlined
+            ? []
+            : [
+                BoxShadow(
+                  color: color.withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+      ),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: textColor,
+          elevation: 0, // Disabled standard elevation for custom shadow
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: isOutlined
+                ? BorderSide(color: textColor.withOpacity(0.5), width: 1.5)
+                : BorderSide.none,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 22),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
