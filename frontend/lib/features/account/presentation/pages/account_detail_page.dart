@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/edit_profile_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/key_management_page.dart';
+import 'package:sigap_mobile/features/account/presentation/pages/security_settings_page.dart';
 
 /// Halaman Detail Akun
 /// Menampilkan profil lengkap jika sudah login, atau prompt login dengan efek getar jika belum
@@ -425,7 +426,14 @@ class _SecuritySection extends StatelessWidget {
             icon: Icons.shield_rounded,
             title: 'Sandi & Keamanan',
             subtitle: 'Kelola akses biometrik dan kata sandi',
-            onTap: () {}),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) =>
+                        const SecuritySettingsPage(isLoggedIn: true)),
+              );
+            }),
       ],
     );
   }

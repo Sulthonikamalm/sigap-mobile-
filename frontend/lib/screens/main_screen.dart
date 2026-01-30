@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/account_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/guest_account_page.dart';
 
@@ -14,13 +15,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-
-  // Konfigurasi Warna
-  static const Color primaryColor = Color(0xFF7BA8DC);
-  static const Color primaryTransparentColor = Color(0x857BA8DC);
-  static const Color urgentActionColor = Color(0xFFDC2626);
-  static const Color inactiveColor = Color(0xFF9E9E9E);
-
   @override
   Widget build(BuildContext context) {
     // Daftar halaman navigasi
@@ -48,13 +42,13 @@ class _MainScreenState extends State<MainScreen> {
         child: FloatingActionButton(
           onPressed: () => _onItemTapped(2),
           elevation: 4,
-          backgroundColor: primaryTransparentColor,
+          backgroundColor: AppConstants.primaryAlphaColor,
           shape: const CircleBorder(),
           child: Container(
             width: 58,
             height: 58,
-            decoration: const BoxDecoration(
-              color: urgentActionColor,
+            decoration: BoxDecoration(
+              color: AppConstants.urgentColor,
               shape: BoxShape.circle,
             ),
             child:
@@ -103,7 +97,8 @@ class _MainScreenState extends State<MainScreen> {
   // Builder untuk item navigasi
   Widget _buildNavItem(int index, IconData icon, String label) {
     final bool isSelected = _selectedIndex == index;
-    final Color currentColor = isSelected ? primaryColor : inactiveColor;
+    final Color currentColor =
+        isSelected ? AppConstants.primaryColor : Colors.grey;
 
     return Expanded(
       child: InkWell(
@@ -112,7 +107,9 @@ class _MainScreenState extends State<MainScreen> {
         child: Container(
           decoration: BoxDecoration(
             border: isSelected
-                ? const Border(top: BorderSide(color: primaryColor, width: 3.0))
+                ? const Border(
+                    top: BorderSide(
+                        color: AppConstants.primaryColor, width: 3.0))
                 : null,
           ),
           child: Column(

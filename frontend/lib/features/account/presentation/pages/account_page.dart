@@ -3,6 +3,7 @@ import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/account/presentation/widgets/feature_cards.dart';
 import 'package:sigap_mobile/features/account/presentation/widgets/menu_tile.dart';
 import 'package:sigap_mobile/features/account/presentation/widgets/profile_header.dart';
+import 'package:sigap_mobile/features/account/presentation/widgets/section_header.dart';
 import 'package:sigap_mobile/features/report_monitor/presentation/pages/report_monitor_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/account_detail_page.dart';
 
@@ -36,7 +37,7 @@ class AccountPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Feature Section
-                  _buildSectionHeader('Fitur Utama'),
+                  const SectionHeader(title: 'Fitur Utama'),
                   const SizedBox(height: 12),
                   SecurityModeCard(
                     initialValue: true,
@@ -121,21 +122,6 @@ class AccountPage extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey.shade400,
-          letterSpacing: 1.5,
-        ),
       ),
     );
   }

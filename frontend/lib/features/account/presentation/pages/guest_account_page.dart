@@ -4,9 +4,11 @@ import 'package:sigap_mobile/features/account/presentation/widgets/feature_cards
 import 'package:sigap_mobile/features/account/presentation/widgets/guest_profile_header.dart';
 import 'package:sigap_mobile/features/account/presentation/widgets/inactive_security_mode_card.dart';
 import 'package:sigap_mobile/features/account/presentation/widgets/menu_tile.dart';
+import 'package:sigap_mobile/features/account/presentation/widgets/section_header.dart';
 import 'package:sigap_mobile/features/report_monitor/presentation/pages/report_monitor_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/account_detail_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/key_management_page.dart';
+import 'package:sigap_mobile/features/account/presentation/pages/security_settings_page.dart';
 import 'package:sigap_mobile/screens/login_screen.dart';
 
 class GuestAccountPage extends StatelessWidget {
@@ -37,7 +39,7 @@ class GuestAccountPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Feature Section
-                  _buildSectionHeader('Fitur Utama'),
+                  const SectionHeader(title: 'Fitur Utama'),
                   const SizedBox(height: 12),
                   const InactiveSecurityModeCard(),
                   const SizedBox(height: 16),
@@ -85,6 +87,20 @@ class GuestAccountPage extends StatelessWidget {
                           );
                         },
                       ),
+                      MenuTile(
+                        icon: Icons.shield_outlined,
+                        title: 'Sandi & Keamanan',
+                        subtitle: 'Kelola akses biometrik dan kata sandi',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const SecuritySettingsPage(isLoggedIn: false),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -128,21 +144,6 @@ class GuestAccountPage extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey.shade400,
-          letterSpacing: 1.5,
-        ),
       ),
     );
   }
