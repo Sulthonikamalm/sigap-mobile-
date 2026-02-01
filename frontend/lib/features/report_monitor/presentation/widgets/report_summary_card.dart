@@ -56,7 +56,7 @@ class ReportSummaryCard extends StatelessWidget {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: AppConstants.primaryColor,
                             shape: BoxShape.circle,
                           ),
@@ -111,7 +111,7 @@ class ReportSummaryCard extends StatelessWidget {
                         color: AppConstants.primaryColor.withOpacity(0.15),
                       ),
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.assignment_rounded,
                       size: 32,
                       color: AppConstants.primaryColor,

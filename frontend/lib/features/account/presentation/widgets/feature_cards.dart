@@ -66,14 +66,14 @@ class _SecurityModeCardState extends State<SecurityModeCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      const Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.bolt,
                             size: 20,
                             color: AppConstants.primaryColor,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Text(
                             'MODE SIAGA',
                             style: TextStyle(

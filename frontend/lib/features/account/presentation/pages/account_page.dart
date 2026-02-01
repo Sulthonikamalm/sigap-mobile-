@@ -6,6 +6,8 @@ import 'package:sigap_mobile/features/account/presentation/widgets/profile_heade
 import 'package:sigap_mobile/features/account/presentation/widgets/section_header.dart';
 import 'package:sigap_mobile/features/report_monitor/presentation/pages/report_monitor_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/account_detail_page.dart';
+import 'package:sigap_mobile/features/account/presentation/pages/about_page.dart';
+import 'package:sigap_mobile/features/account/presentation/pages/help_center_page.dart';
 
 class AccountPage extends StatelessWidget {
   const AccountPage({super.key});
@@ -89,13 +91,27 @@ class AccountPage extends StatelessWidget {
                         title: 'Tentang SIGAP',
                         subtitle:
                             'Versi ${AppConstants.appVersion}, lisensi & privasi',
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AboutPage(),
+                            ),
+                          );
+                        },
                       ),
                       MenuTile(
                         icon: Icons.help_outline,
                         title: 'Pusat Bantuan',
                         subtitle: 'FAQ, kontak darurat & panduan',
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HelpCenterPage(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -148,16 +164,16 @@ class AccountPage extends StatelessWidget {
             // TODO: Implement Logout
           },
           borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+          child: const Padding(
+            padding: EdgeInsets.all(16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
+                Icon(
                   Icons.logout,
                   color: AppConstants.urgentColor,
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text(
                   'Keluar dari Akun',
                   style: TextStyle(

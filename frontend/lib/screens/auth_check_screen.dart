@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/screens/main_screen.dart';
 
 class AuthCheckScreen extends StatelessWidget {
@@ -13,7 +14,7 @@ class AuthCheckScreen extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.deepPurple.shade50,
+              AppConstants.primaryColor.withOpacity(0.1),
               Colors.white,
             ],
           ),
@@ -34,16 +35,16 @@ class AuthCheckScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.deepPurple.withOpacity(0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+                        color: AppConstants.primaryColor.withOpacity(0.2),
+                        blurRadius: 30,
+                        offset: const Offset(0, 15),
                       ),
                     ],
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.verified_user_rounded,
                     size: 80,
-                    color: Theme.of(context).primaryColor,
+                    color: AppConstants.primaryColor,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -53,16 +54,16 @@ class AuthCheckScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple.shade900,
+                    color: AppConstants.primaryColor,
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'Pilih status login untuk simulasi alur aplikasi',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
-                    color: Colors.grey.shade600,
+                    color: AppConstants.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -72,7 +73,7 @@ class AuthCheckScreen extends StatelessWidget {
                   context,
                   label: "Sudah Login",
                   icon: Icons.login_rounded,
-                  color: Theme.of(context).primaryColor,
+                  color: AppConstants.primaryColor,
                   textColor: Colors.white,
                   onPressed: () {
                     Navigator.pushReplacement(
@@ -89,7 +90,7 @@ class AuthCheckScreen extends StatelessWidget {
                   label: "Belum Login",
                   icon: Icons.app_registration_rounded,
                   color: Colors.white,
-                  textColor: Theme.of(context).primaryColor,
+                  textColor: AppConstants.primaryColor,
                   isOutlined: true,
                   onPressed: () {
                     Navigator.pushReplacement(

@@ -22,7 +22,6 @@ class _AccountDetailPageState extends State<AccountDetailPage>
   bool _showLoginPrompt = false;
 
   // Warna iOS Style
-  static const _iosBg = Color(0xFFF2F2F7);
   static const _iosCard = Colors.white;
 
   @override
@@ -64,7 +63,7 @@ class _AccountDetailPageState extends State<AccountDetailPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _iosBg,
+      backgroundColor: AppConstants.backgroundColor,
       appBar: _buildAppBar(),
       body: widget.isLoggedIn ? _buildProfileView() : _buildLoginPromptView(),
     );
@@ -72,7 +71,7 @@ class _AccountDetailPageState extends State<AccountDetailPage>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: _iosBg.withOpacity(0.9),
+      backgroundColor: AppConstants.backgroundColor.withOpacity(0.9),
       elevation: 0,
       centerTitle: true,
       leading: IconButton(
@@ -290,13 +289,13 @@ class _InfoSection extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _InfoTile(
+          const _InfoTile(
               icon: Icons.person_outline, label: 'Username', value: 'smalm'),
           _divider(),
-          _InfoTile(
+          const _InfoTile(
               icon: Icons.badge_outlined, label: 'NIM', value: '120223023'),
           _divider(),
-          _InfoTile(
+          const _InfoTile(
               icon: Icons.mail_outline,
               label: 'Email',
               value:

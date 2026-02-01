@@ -1,21 +1,70 @@
-# App Root .gitignore
+# ========================================
+# SIGAP MOBILE - SECURE .GITIGNORE
+# ========================================
 
-# OS
+# ==== SECURITY-CRITICAL (NEVER COMMIT) ====
+# API Keys & Secrets
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+**/secrets/
+**/credentials/
+**/private/
+
+# Firebase & Google Cloud
+**/firebase-admin-sdk*.json
+**/serviceAccountKey*.json
+**/google-services.json
+**/GoogleService-Info.plist
+firebase_options.dart
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+*.env
+
+# ==== OS FILES ====
 .DS_Store
 Thumbs.db
+Desktop.ini
+*.lnk
 
-# IDE
+# ==== IDE & EDITOR ====
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
 
-# Logs
+# ==== LOGS & DEBUG ====
 *.log
+logs/
+debug/
+*.trace
 
-# Environment
-.env
-.env.local
-
-# Temporary
+# ==== TEMPORARY FILES ====
 *.tmp
+*.temp
 temp/
+tmp/
+*.bak
+*.backup
+
+# ==== BUILD ARTIFACTS ====
+build/
+dist/
+out/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# ==== CACHE ====
+.cache/
+*.cache

@@ -2,6 +2,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
+import 'package:sigap_mobile/features/account/presentation/widgets/fingerprint/fingerprint_icon_widget.dart';
+import 'package:sigap_mobile/features/account/presentation/widgets/fingerprint/success_icon_widget.dart';
+import 'package:sigap_mobile/features/account/presentation/widgets/fingerprint/failed_icon_widget.dart';
+import 'package:sigap_mobile/features/account/presentation/widgets/fingerprint/confetti_overlay.dart';
 
 /// Halaman Pengaturan Sidik Jari
 /// Untuk mendaftarkan dan mengelola sidik jari pengguna
@@ -48,7 +52,6 @@ class _FingerprintSetupPageState extends State<FingerprintSetupPage>
     // Simulasi scanning (random success/failed untuk demo)
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
-        // Random hasil untuk demo, bisa diganti logic sebenarnya
         final success = Random().nextBool();
         if (success) {
           _onSuccess();
@@ -141,11 +144,11 @@ class _FingerprintSetupPageState extends State<FingerprintSetupPage>
   Widget _buildStateIcon() {
     switch (_currentState) {
       case 'success':
-        return _SuccessIcon();
+        return const SuccessIconWidget();
       case 'failed':
-        return _FailedIcon(pulseAnimation: _pulseController);
+        return FailedIconWidget(pulseAnimation: _pulseController);
       default:
-        return _FingerprintIcon(
+        return FingerprintIconWidget(
           pulseAnimation: _pulseController,
           isScanning: _currentState == 'scanning',
         );
@@ -219,14 +222,12 @@ class _FingerprintSetupPageState extends State<FingerprintSetupPage>
       child: Column(
         children: [
           if (_currentState == 'success') ...[
-            // Success: Selesai button
             _buildPrimaryButton(
               label: 'Selesai',
               onTap: () => Navigator.pop(context),
               isPrimary: true,
             ),
           ] else if (_currentState == 'failed') ...[
-            // Failed: Coba Lagi button
             _buildPrimaryButton(
               label: 'Coba Lagi',
               icon: Icons.refresh_rounded,
@@ -245,7 +246,6 @@ class _FingerprintSetupPageState extends State<FingerprintSetupPage>
               ),
             ),
           ] else ...[
-            // Idle/Scanning: Mulai Pemindaian
             _buildScanButton(),
             const SizedBox(height: 16),
             TextButton(
@@ -296,7 +296,7 @@ class _FingerprintSetupPageState extends State<FingerprintSetupPage>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (isScanning) ...[
-                  SizedBox(
+                  const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
@@ -306,7 +306,7 @@ class _FingerprintSetupPageState extends State<FingerprintSetupPage>
                     ),
                   ),
                 ] else ...[
-                  Icon(Icons.fingerprint_rounded,
+                  const Icon(Icons.fingerprint_rounded,
                       color: AppConstants.primaryColor, size: 22),
                 ],
                 const SizedBox(width: 10),
@@ -363,345 +363,4 @@ class _FingerprintSetupPageState extends State<FingerprintSetupPage>
       ),
     );
   }
-}
-
-// =============================================================================
-// WIDGET: FINGERPRINT ICON
-// =============================================================================
-class _FingerprintIcon extends StatelessWidget {
-  final AnimationController pulseAnimation;
-  final bool isScanning;
-
-  const _FingerprintIcon({
-    required this.pulseAnimation,
-    required this.isScanning,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 180,
-      height: 180,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Outer Pulse Ring
-          if (isScanning)
-            AnimatedBuilder(
-              animation: pulseAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: 1.0 + (pulseAnimation.value * 0.2),
-                  child: Container(
-                    width: 160,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppConstants.primaryColor
-                            .withOpacity(0.3 - (pulseAnimation.value * 0.2)),
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          // Glow Background
-          Container(
-            width: 160,
-            height: 160,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppConstants.primaryColor
-                      .withOpacity(isScanning ? 0.25 : 0.1),
-                  blurRadius: 40,
-                  spreadRadius: 10,
-                ),
-              ],
-            ),
-          ),
-          // Main Circle
-          Container(
-            width: 160,
-            height: 160,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.grey.shade200,
-                    blurRadius: 24,
-                    offset: const Offset(12, 12)),
-                const BoxShadow(
-                    color: Colors.white,
-                    blurRadius: 24,
-                    offset: Offset(-12, -12)),
-              ],
-            ),
-            child: Icon(
-              Icons.fingerprint_rounded,
-              size: 96,
-              color: isScanning
-                  ? AppConstants.primaryColor
-                  : AppConstants.primaryColor.withOpacity(0.8),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// WIDGET: SUCCESS ICON
-// =============================================================================
-class _SuccessIcon extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 180,
-      height: 180,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Outer Ring
-          Container(
-            width: 180,
-            height: 180,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.green.shade100, width: 2),
-            ),
-          ),
-          // Glow
-          Container(
-            width: 160,
-            height: 160,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.green.withOpacity(0.15),
-                  blurRadius: 40,
-                  spreadRadius: 10,
-                ),
-              ],
-            ),
-          ),
-          // Main Circle
-          Container(
-            width: 160,
-            height: 160,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.grey.shade200,
-                    blurRadius: 24,
-                    offset: const Offset(12, 12)),
-                const BoxShadow(
-                    color: Colors.white,
-                    blurRadius: 24,
-                    offset: Offset(-12, -12)),
-              ],
-            ),
-            child: Icon(Icons.check_circle_outline_rounded,
-                size: 80, color: Colors.green.shade500),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// WIDGET: FAILED ICON
-// =============================================================================
-class _FailedIcon extends StatelessWidget {
-  final AnimationController pulseAnimation;
-
-  const _FailedIcon({required this.pulseAnimation});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 180,
-      height: 180,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Pulse Ring
-          AnimatedBuilder(
-            animation: pulseAnimation,
-            builder: (context, child) {
-              return Container(
-                width: 180,
-                height: 180,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.red.shade200
-                        .withOpacity(0.5 + (pulseAnimation.value * 0.3)),
-                    width: 2,
-                  ),
-                ),
-              );
-            },
-          ),
-          // Glow
-          Container(
-            width: 160,
-            height: 160,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.red.withOpacity(0.12),
-                  blurRadius: 40,
-                  spreadRadius: 10,
-                ),
-              ],
-            ),
-          ),
-          // Main Circle
-          Container(
-            width: 160,
-            height: 160,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.grey.shade200,
-                    blurRadius: 24,
-                    offset: const Offset(12, 12)),
-                const BoxShadow(
-                    color: Colors.white,
-                    blurRadius: 24,
-                    offset: Offset(-12, -12)),
-              ],
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(Icons.fingerprint_rounded,
-                    size: 80, color: Colors.red.shade400),
-                Positioned(
-                  right: 35,
-                  bottom: 35,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(
-                        color: Colors.white, shape: BoxShape.circle),
-                    child: Icon(Icons.error_rounded,
-                        size: 28, color: Colors.red.shade500),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// WIDGET: CONFETTI OVERLAY (Subtle, not too flashy)
-// =============================================================================
-class ConfettiOverlay extends StatelessWidget {
-  final AnimationController controller;
-
-  const ConfettiOverlay({super.key, required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, child) {
-        if (controller.value == 0) return const SizedBox.shrink();
-        return IgnorePointer(
-          child: CustomPaint(
-            painter: _ConfettiPainter(
-              progress: controller.value,
-              colors: [
-                AppConstants.primaryColor,
-                Colors.green.shade400,
-                Colors.amber.shade400,
-                Colors.blue.shade300,
-              ],
-            ),
-            size: MediaQuery.of(context).size,
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _ConfettiPainter extends CustomPainter {
-  final double progress;
-  final List<Color> colors;
-  final List<_ConfettiParticle> particles;
-
-  _ConfettiPainter({required this.progress, required this.colors})
-      : particles = List.generate(25, (i) => _ConfettiParticle(i, colors));
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (var particle in particles) {
-      final paint = Paint()
-        ..color = particle.color.withOpacity((1 - progress) * 0.8)
-        ..style = PaintingStyle.fill;
-
-      final x = particle.startX * size.width;
-      final y = particle.startY * size.height +
-          (progress * size.height * particle.speed);
-      final rotation = progress * particle.rotation * 2 * pi;
-
-      canvas.save();
-      canvas.translate(x, y);
-      canvas.rotate(rotation);
-
-      if (particle.isCircle) {
-        canvas.drawCircle(Offset.zero, particle.size, paint);
-      } else {
-        canvas.drawRect(
-          Rect.fromCenter(
-              center: Offset.zero,
-              width: particle.size,
-              height: particle.size * 0.6),
-          paint,
-        );
-      }
-      canvas.restore();
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ConfettiPainter oldDelegate) =>
-      oldDelegate.progress != progress;
-}
-
-class _ConfettiParticle {
-  final double startX;
-  final double startY;
-  final double speed;
-  final double rotation;
-  final double size;
-  final Color color;
-  final bool isCircle;
-
-  _ConfettiParticle(int index, List<Color> colors)
-      : startX = Random(index).nextDouble(),
-        startY = Random(index * 2).nextDouble() * 0.3 - 0.3,
-        speed = 0.3 + Random(index * 3).nextDouble() * 0.5,
-        rotation = Random(index * 4).nextDouble() * 4,
-        size = 4 + Random(index * 5).nextDouble() * 6,
-        color = colors[Random(index * 6).nextInt(colors.length)],
-        isCircle = Random(index * 7).nextBool();
 }

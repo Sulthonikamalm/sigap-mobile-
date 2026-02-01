@@ -227,7 +227,7 @@ class FingerprintVerifyView extends StatelessWidget {
                   child: verifyState == 'success'
                       ? ScaleTransition(
                           scale: successScaleAnimation,
-                          child: Icon(Icons.check_rounded,
+                          child: const Icon(Icons.check_rounded,
                               size: innerIconSize, color: Colors.white),
                         )
                       : verifyState == 'failed'
@@ -249,18 +249,18 @@ class FingerprintVerifyView extends StatelessWidget {
     switch (verifyState) {
       case 'success':
         return (
-          glow: Colors.green,
-          bg: Colors.green.shade500,
-          border: Colors.green.shade400,
+          glow: AppConstants.successColor,
+          bg: AppConstants.successColor,
+          border: AppConstants.successColor.withOpacity(0.8),
           icon: Colors
               .white // Icon color unused in success state (uses check icon)
         );
       case 'failed':
         return (
-          glow: Colors.red,
-          bg: Colors.red.shade50,
-          border: Colors.red.shade400,
-          icon: Colors.red.shade400
+          glow: AppConstants.errorColor,
+          bg: AppConstants.errorColor.withOpacity(0.1),
+          border: AppConstants.errorColor.withOpacity(0.8),
+          icon: AppConstants.errorColor
         );
       default: // idle, scanning
         return (
@@ -299,7 +299,7 @@ class FingerprintVerifyView extends StatelessWidget {
         color: verifyState == 'failed'
             ? Colors.red.shade600
             : verifyState == 'success'
-                ? Colors.green.shade600
+                ? AppConstants.successColor
                 : Colors.grey.shade900,
       ),
       child: Text(title),

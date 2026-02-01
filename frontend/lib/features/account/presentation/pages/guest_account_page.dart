@@ -9,7 +9,9 @@ import 'package:sigap_mobile/features/report_monitor/presentation/pages/report_m
 import 'package:sigap_mobile/features/account/presentation/pages/account_detail_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/key_management_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/security_settings_page.dart';
-import 'package:sigap_mobile/screens/login_screen.dart';
+import 'package:sigap_mobile/features/account/presentation/pages/about_page.dart';
+import 'package:sigap_mobile/screens/auth_check_screen.dart';
+import 'package:sigap_mobile/features/account/presentation/pages/help_center_page.dart';
 
 class GuestAccountPage extends StatelessWidget {
   const GuestAccountPage({super.key});
@@ -23,9 +25,11 @@ class GuestAccountPage extends StatelessWidget {
           // Sticky Header
           GuestProfileHeader(
             onLoginPressed: () {
-              Navigator.push(
+              // Navigate to AuthCheckScreen for login flow
+              Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const AuthCheckScreen()),
               );
             },
           ),
@@ -114,13 +118,27 @@ class GuestAccountPage extends StatelessWidget {
                         title: 'Tentang SIGAP',
                         subtitle:
                             'Versi ${AppConstants.appVersion}, lisensi & privasi',
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AboutPage(),
+                            ),
+                          );
+                        },
                       ),
                       MenuTile(
                         icon: Icons.help_outline,
                         title: 'Pusat Bantuan',
                         subtitle: 'FAQ, kontak darurat & panduan',
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HelpCenterPage(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

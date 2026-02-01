@@ -30,7 +30,7 @@ class ReportSearchBar extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: 18),
-          Icon(
+          const Icon(
             Icons.search_rounded,
             color: AppConstants.primaryColor,
             size: 24,

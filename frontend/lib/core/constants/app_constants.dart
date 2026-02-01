@@ -10,9 +10,13 @@ class AppConstants {
   static const Color primaryColor = Color(0xFF7BA8DC);
   static const Color primaryAlphaColor = Color(0x857BA8DC);
   static const Color urgentColor = Color(0xFFDC2626);
+  static const Color errorColor = urgentColor;
+  static const Color successColor = Color(0xFF16A34A); // Green 600
+  static const Color warningColor = Color(0xFFCA8A04); // Yellow 600
   static const Color backgroundColor = Color(0xFFF8FAFC);
   static const Color darkBackgroundColor = Color(0xFF101822);
   static const Color textDark = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF64748B); // Slate 500
   static const Color textLight = Color(0xFFF1F5F9);
 
   // API (uncomment when backend ready)

@@ -405,7 +405,7 @@ class _KeyCard extends StatelessWidget {
                     color: AppConstants.primaryColor.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.vpn_key_rounded,
                     size: 18,
                     color: AppConstants.primaryColor,

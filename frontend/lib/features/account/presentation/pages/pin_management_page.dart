@@ -214,18 +214,18 @@ class PinManagementPage extends StatelessWidget {
                       elevation: 2,
                       shadowColor: AppConstants.primaryColor.withOpacity(0.4),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
+                        Text(
                           'Reset Sekarang',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward_rounded, size: 18),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward_rounded, size: 18),
                       ],
                     ),
                   ),

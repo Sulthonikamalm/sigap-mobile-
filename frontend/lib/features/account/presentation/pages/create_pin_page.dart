@@ -124,19 +124,19 @@ class _CreatePinPageState extends State<CreatePinPage>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.green.shade50,
+                color: AppConstants.successColor.withOpacity(0.1),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.green.withOpacity(0.2),
+                    color: AppConstants.successColor.withOpacity(0.2),
                     blurRadius: 20,
                     spreadRadius: 3,
                   ),
                 ],
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.check_rounded,
-                color: Colors.green.shade500,
+                color: AppConstants.successColor,
                 size: 40,
               ),
             ),
@@ -385,13 +385,13 @@ class _CreatePinPageState extends State<CreatePinPage>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: _isError
-                  ? Colors.red.shade400
+                  ? AppConstants.errorColor.withOpacity(0.8)
                   : isFilled
                       ? AppConstants.primaryColor
                       : Colors.transparent,
               border: Border.all(
                 color: _isError
-                    ? Colors.red.shade400
+                    ? AppConstants.errorColor
                     : isFilled
                         ? AppConstants.primaryColor
                         : Colors.grey.shade300,

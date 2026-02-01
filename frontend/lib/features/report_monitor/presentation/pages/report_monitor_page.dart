@@ -113,7 +113,7 @@ class ReportMonitorPage extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: 18),
-          Icon(
+          const Icon(
             Icons.search_rounded,
             color: AppConstants.primaryColor,
             size: 24,
@@ -185,7 +185,7 @@ class ReportMonitorPage extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(
+          child: const Icon(
             Icons.shield_rounded,
             size: 56,
             color: AppConstants.primaryColor,

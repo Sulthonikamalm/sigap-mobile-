@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/account_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/guest_account_page.dart';
+import 'package:sigap_mobile/features/wawasan/presentation/pages/wawasan_page.dart';
+import 'package:sigap_mobile/features/report_monitor/presentation/pages/report_monitor_page.dart';
 
 /// Screen utama dengan navigasi BottomNavigationBar (Beranda, Temanku, Lapor, Wawasan, Akun).
 class MainScreen extends StatefulWidget {
@@ -24,8 +26,7 @@ class _MainScreenState extends State<MainScreen> {
       const Center(
           child: Text('Halaman Temanku', style: TextStyle(fontSize: 24))),
       const SizedBox(), // Placeholder Lapor (dihandle FAB)
-      const Center(
-          child: Text('Halaman Wawasan', style: TextStyle(fontSize: 24))),
+      const WawasanPage(),
       widget.isGuest ? const GuestAccountPage() : const AccountPage(),
     ];
 
@@ -47,7 +48,7 @@ class _MainScreenState extends State<MainScreen> {
           child: Container(
             width: 58,
             height: 58,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppConstants.urgentColor,
               shape: BoxShape.circle,
             ),
@@ -87,7 +88,11 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onItemTapped(int index) {
     if (index == 2) {
-      debugPrint("Tombol Lapor Ditekan");
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ReportMonitorPage()),
+      );
+      return;
     }
     setState(() {
       _selectedIndex = index;
