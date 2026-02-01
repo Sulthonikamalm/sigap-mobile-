@@ -4,6 +4,7 @@ import 'package:sigap_mobile/features/account/presentation/pages/account_page.da
 import 'package:sigap_mobile/features/account/presentation/pages/guest_account_page.dart';
 import 'package:sigap_mobile/features/wawasan/presentation/pages/wawasan_page.dart';
 import 'package:sigap_mobile/features/lapor/presentation/pages/lapor_page.dart';
+import 'package:sigap_mobile/features/lapor/presentation/pages/lapor_guest_page.dart';
 
 /// Screen utama dengan navigasi BottomNavigationBar (Beranda, Temanku, Lapor, Wawasan, Akun).
 class MainScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     // Daftar halaman navigasi
@@ -88,11 +90,19 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onItemTapped(int index) {
     if (index == 2) {
-      // NAVIGASI LANGSUNG KE MODE DARURAT (STEALTH)
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const LaporPage()),
-      );
+      if (widget.isGuest) {
+        // Tamu mencoba akses Lapor -> Arahkan ke Halaman Edukasi Login
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const LaporGuestPage()),
+        );
+      } else {
+        // User Login -> Masuk Mode Darurat
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const LaporPage()),
+        );
+      }
       return;
     }
     setState(() {

@@ -14,7 +14,7 @@ class AuthCheckScreen extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppConstants.primaryColor.withOpacity(0.1),
+              AppConstants.primaryColor.withValues(alpha: 0.1),
               Colors.white,
             ],
           ),
@@ -35,7 +35,7 @@ class AuthCheckScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppConstants.primaryColor.withOpacity(0.2),
+                        color: AppConstants.primaryColor.withValues(alpha: 0.2),
                         blurRadius: 30,
                         offset: const Offset(0, 15),
                       ),
@@ -76,10 +76,12 @@ class AuthCheckScreen extends StatelessWidget {
                   color: AppConstants.primaryColor,
                   textColor: Colors.white,
                   onPressed: () {
+                    // Masuk sebagai USER (isGuest default = false)
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const MainScreen()),
+                          builder: (context) =>
+                              const MainScreen(isGuest: false)),
                     );
                   },
                 ),
@@ -93,6 +95,7 @@ class AuthCheckScreen extends StatelessWidget {
                   textColor: AppConstants.primaryColor,
                   isOutlined: true,
                   onPressed: () {
+                    // Masuk sebagai GUEST (isGuest = true)
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
@@ -134,7 +137,7 @@ class AuthCheckScreen extends StatelessWidget {
             ? []
             : [
                 BoxShadow(
-                  color: color.withOpacity(0.3),
+                  color: color.withValues(alpha: 0.3),
                   blurRadius: 15,
                   offset: const Offset(0, 8),
                 ),
@@ -149,7 +152,8 @@ class AuthCheckScreen extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: isOutlined
-                ? BorderSide(color: textColor.withOpacity(0.5), width: 1.5)
+                ? BorderSide(
+                    color: textColor.withValues(alpha: 0.5), width: 1.5)
                 : BorderSide.none,
           ),
         ),
