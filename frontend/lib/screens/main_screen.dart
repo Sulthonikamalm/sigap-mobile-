@@ -3,7 +3,7 @@ import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/account_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/guest_account_page.dart';
 import 'package:sigap_mobile/features/wawasan/presentation/pages/wawasan_page.dart';
-import 'package:sigap_mobile/features/report_monitor/presentation/pages/report_monitor_page.dart';
+import 'package:sigap_mobile/features/lapor/presentation/pages/lapor_page.dart';
 
 /// Screen utama dengan navigasi BottomNavigationBar (Beranda, Temanku, Lapor, Wawasan, Akun).
 class MainScreen extends StatefulWidget {
@@ -36,7 +36,7 @@ class _MainScreenState extends State<MainScreen> {
         child: pages[_selectedIndex],
       ),
 
-      // Tombol Lapor (Tengah)
+      // Tombol Lapor (Tengah) - Mengarah ke STEALTH EMERGENCY PAGE
       floatingActionButton: SizedBox(
         width: 66,
         height: 66,
@@ -88,9 +88,10 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onItemTapped(int index) {
     if (index == 2) {
+      // NAVIGASI LANGSUNG KE MODE DARURAT (STEALTH)
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const ReportMonitorPage()),
+        MaterialPageRoute(builder: (context) => const LaporPage()),
       );
       return;
     }
