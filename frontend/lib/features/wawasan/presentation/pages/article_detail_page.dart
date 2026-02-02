@@ -33,8 +33,9 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
     if (maxScroll > 0) {
+      final progress = (currentScroll / maxScroll).clamp(0.0, 1.0);
       setState(() {
-        _progress = (currentScroll / maxScroll).clamp(0.0, 1.0);
+        _progress = progress;
       });
     }
   }
@@ -62,7 +63,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
               controller: _scrollController,
               physics: const BouncingScrollPhysics(),
               slivers: [
-                // 1. Minimized AppBar
+                // 1. Minimized AppBar with Progress Indicator
                 SliverAppBar(
                   backgroundColor: bgPaper,
                   elevation: 0,
@@ -207,10 +208,10 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                         ),
                         const SizedBox(height: 32),
 
-                        // Article Content (Dummy Text Generator)
+                        // Article Content
                         _buildArticleContent(textInk),
 
-                        const SizedBox(height: 48),
+                        const SizedBox(height: 56),
 
                         // "Read Next" / Related (Seamless transition)
                         const Divider(color: Colors.black12),
@@ -232,9 +233,6 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                 ),
               ],
             ),
-
-            // Floating Control (Typography) - Optional, disappears on scroll could be added
-            // For now, keep it simple zero-distraction.
           ],
         ),
       ),
