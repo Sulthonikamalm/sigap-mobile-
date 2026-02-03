@@ -100,3 +100,10 @@ firebase_options.dart
 # Environment
 .env
 .env.local
+
+# API Keys & Secrets - NEVER COMMIT THESE
+lib/features/chat/data/chat_api_config.dart
+**/api_keys.dart
+**/secrets.dart
+**/api_config.dart
+*.secret

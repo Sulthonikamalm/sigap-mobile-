@@ -16,7 +16,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
     with SingleTickerProviderStateMixin {
   // Page Controller untuk navigasi antar langkah
   final PageController _pageController = PageController();
-  int _currentStep = 0; // 0: Verify, 1: Create New
 
   // --- STATE: VERIFICATION PHASE ---
   String _verifyMode = 'password'; // 'password' or 'otp'
@@ -185,7 +184,6 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOutQuart,
     );
-    setState(() => _currentStep = 1);
   }
 
   void _showSnackbar(String message, {bool isError = false}) {

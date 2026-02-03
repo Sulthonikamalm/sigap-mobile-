@@ -26,9 +26,9 @@ dependencies:
   # geolocator: ^11.0.0
   # permission_handler: ^11.2.0
   
-  # HTTP (uncomment when needed)
-  # http: ^1.2.0
-  # dio: ^5.4.0
+  # HTTP
+  http: ^1.2.0
+  # dio: ^5.4.0 (uncomment when needed)
 
 dev_dependencies:
   flutter_test:
