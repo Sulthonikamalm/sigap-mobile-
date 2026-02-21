@@ -1,6 +1,7 @@
 /// Chat Feature - ChatPage (Halaman Percakapan)
 /// Premium UI dengan DeepUI, DeepUX & DeepAnimation principles
 /// Includes: Staggered animations, spring physics, micro-interactions
+library chat_page;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -280,7 +281,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppConstants.primaryColor.withOpacity(0.15),
+                        color:
+                            AppConstants.primaryColor.withValues(alpha: 0.15),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -303,7 +305,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppConstants.primaryColor.withOpacity(0.15),
+                    color: AppConstants.primaryColor.withValues(alpha: 0.15),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -314,8 +316,8 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                   'assets/images/chatbot_avatar.png',
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
-                    color: AppConstants.primaryColor.withOpacity(0.1),
-                    child: Icon(Icons.smart_toy_rounded,
+                    color: AppConstants.primaryColor.withValues(alpha: 0.1),
+                    child: const Icon(Icons.smart_toy_rounded,
                         color: AppConstants.primaryColor, size: 24),
                   ),
                 ),
@@ -415,7 +417,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                     gradient: LinearGradient(
                       colors: [
                         AppConstants.primaryColor,
-                        AppConstants.primaryColor.withOpacity(0.7),
+                        AppConstants.primaryColor.withValues(alpha: 0.7),
                       ],
                     ),
                     shape: BoxShape.circle,
@@ -433,7 +435,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -458,7 +460,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -477,7 +479,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
             _AnimatedIconButton(
               icon: Icons.mic_rounded,
               onPressed: _onVoicePressed,
-              backgroundColor: AppConstants.primaryColor.withOpacity(0.1),
+              backgroundColor: AppConstants.primaryColor.withValues(alpha: 0.1),
               iconColor: AppConstants.primaryColor,
             ),
 
@@ -585,7 +587,7 @@ class _AnimatedMessageBubble extends StatelessWidget {
                       gradient: LinearGradient(
                         colors: [
                           AppConstants.primaryColor,
-                          AppConstants.primaryColor.withOpacity(0.7),
+                          AppConstants.primaryColor.withValues(alpha: 0.7),
                         ],
                       ),
                       shape: BoxShape.circle,
@@ -615,7 +617,7 @@ class _AnimatedMessageBubble extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -638,7 +640,7 @@ class _AnimatedMessageBubble extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 10,
                       color: isUser
-                          ? Colors.white.withOpacity(0.7)
+                          ? Colors.white.withValues(alpha: 0.7)
                           : Colors.grey.shade500,
                     ),
                   ),
@@ -674,8 +676,8 @@ class _TypingDots extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 2),
               transform: Matrix4.translationValues(0, -3 * bounce, 0),
               decoration: BoxDecoration(
-                color:
-                    AppConstants.primaryColor.withOpacity(0.4 + (bounce * 0.6)),
+                color: AppConstants.primaryColor
+                    .withValues(alpha: 0.4 + (bounce * 0.6)),
                 shape: BoxShape.circle,
               ),
             );
@@ -754,7 +756,7 @@ class _AnimatedIconButtonState extends State<_AnimatedIconButton>
                 ? LinearGradient(
                     colors: [
                       widget.backgroundColor,
-                      widget.backgroundColor.withOpacity(0.8),
+                      widget.backgroundColor.withValues(alpha: 0.8),
                     ],
                   )
                 : null,

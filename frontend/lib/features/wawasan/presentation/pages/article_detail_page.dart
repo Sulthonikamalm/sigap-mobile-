@@ -19,7 +19,7 @@ class ArticleDetailPage extends StatefulWidget {
 
 class _ArticleDetailPageState extends State<ArticleDetailPage> {
   // Reading preferences state
-  double _fontSize = 16.0;
+  final double _fontSize = 16.0;
   final ScrollController _scrollController = ScrollController();
   double _progress = 0.0;
 
@@ -93,7 +93,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                       value: _progress,
                       backgroundColor: Colors.transparent,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                          AppConstants.primaryColor.withOpacity(0.5)),
+                          AppConstants.primaryColor.withValues(alpha: 0.5)),
                       minHeight: 2,
                     ),
                   ),
@@ -149,8 +149,8 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color:
-                                    AppConstants.primaryColor.withOpacity(0.1),
+                                color: AppConstants.primaryColor
+                                    .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -176,9 +176,9 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                             const Icon(Icons.access_time_rounded,
                                 size: 14, color: textSecondary),
                             const SizedBox(width: 4),
-                            Text(
+                            const Text(
                               "4 min baca", // Dummy calculation
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 color: textSecondary,
                                 fontWeight: FontWeight.w500,
@@ -243,7 +243,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
     if (widget.article.content == null) {
       return Text(
         "Konten artikel tidak tersedia.",
-        style: TextStyle(fontSize: 14, color: color.withOpacity(0.5)),
+        style: TextStyle(fontSize: 14, color: color.withValues(alpha: 0.5)),
       );
     }
 
@@ -258,7 +258,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
           style: TextStyle(
             fontSize: _fontSize + 2, // Lead paragraph slightly larger
             fontWeight: FontWeight.w500,
-            color: color.withOpacity(0.95),
+            color: color.withValues(alpha: 0.95),
             height: 1.6,
           ),
         ),
@@ -298,7 +298,7 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
                       p.trim().replaceAll(RegExp(r'^[0-9*.]+\s*'), ''),
                       style: TextStyle(
                         fontSize: _fontSize,
-                        color: color.withOpacity(0.85),
+                        color: color.withValues(alpha: 0.85),
                         height: 1.7,
                       ),
                     ),
@@ -314,12 +314,12 @@ class _ArticleDetailPageState extends State<ArticleDetailPage> {
               p.trim(),
               style: TextStyle(
                 fontSize: _fontSize,
-                color: color.withOpacity(0.85),
+                color: color.withValues(alpha: 0.85),
                 height: 1.8,
               ),
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }

@@ -4,6 +4,7 @@
 /// Layer Presentation dan UseCase hanya bergantung pada interface ini,
 /// bukan implementasi konkret. Ini memungkinkan dependency injection
 /// dan testability yang lebih baik.
+library wawasan_repository;
 
 import 'package:sigap_mobile/features/wawasan/domain/entities/education_card.dart';
 import 'package:sigap_mobile/features/wawasan/domain/entities/report_step.dart';

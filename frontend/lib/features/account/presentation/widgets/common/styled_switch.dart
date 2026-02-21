@@ -18,7 +18,7 @@ class StyledSwitch extends StatelessWidget {
       value: value,
       onChanged: onChanged,
       activeThumbColor: AppConstants.primaryColor,
-      activeTrackColor: AppConstants.primaryColor.withOpacity(0.4),
+      activeTrackColor: AppConstants.primaryColor.withValues(alpha: 0.4),
       inactiveThumbColor: Colors.grey.shade300,
       inactiveTrackColor: Colors.grey.shade200,
     );

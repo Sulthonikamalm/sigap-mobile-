@@ -45,7 +45,7 @@ class _ConfettiPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (var particle in particles) {
       final paint = Paint()
-        ..color = particle.color.withOpacity((1 - progress) * 0.8)
+        ..color = particle.color.withValues(alpha: (1 - progress) * 0.8)
         ..style = PaintingStyle.fill;
 
       final x = particle.startX * size.width;

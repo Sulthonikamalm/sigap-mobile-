@@ -136,7 +136,7 @@ class _FingerprintVerifyPageState extends State<FingerprintVerifyPage>
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -163,7 +163,7 @@ class _FingerprintVerifyPageState extends State<FingerprintVerifyPage>
                     'Sidik jari tidak cocok. Silakan coba lagi.',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                     ),
                   ),
                 ],

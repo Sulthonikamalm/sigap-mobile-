@@ -38,7 +38,7 @@ class TermsConditionsPage extends StatelessWidget {
           ),
         ],
       ),
-    ); 
+    );
   }
 
   Widget _buildSliverAppBar(BuildContext context) {
@@ -70,7 +70,7 @@ class TermsConditionsPage extends StatelessWidget {
               ),
             ),
             // Decorative Patterns
-            Positioned(
+            const Positioned(
               right: -40,
               top: -40,
               child: Opacity(
@@ -90,23 +90,23 @@ class TermsConditionsPage extends StatelessWidget {
                 child: Container(
                   width: 60,
                   height: 60,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.all(Radius.circular(30)),
                   ),
                 ),
               ),
             ),
             // Content
-            SafeArea(
+            const SafeArea(
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: EdgeInsets.all(24.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Spacer(),
-                    const Text(
+                    Spacer(),
+                    Text(
                       'Syarat & Ketentuan',
                       style: TextStyle(
                         fontSize: 28,
@@ -114,8 +114,8 @@ class TermsConditionsPage extends StatelessWidget {
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
+                    SizedBox(height: 8),
+                    Text(
                       'Kerangka hukum yang menjamin keadilan\ndan kepastian layanan.',
                       style: TextStyle(
                         fontSize: 14,
@@ -156,7 +156,7 @@ class TermsConditionsPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppConstants.primaryColor.withOpacity(0.1),
+                  color: AppConstants.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.balance_rounded,
@@ -252,7 +252,8 @@ class TermsConditionsPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(Icons.verified_user_outlined,
-              size: 32, color: AppConstants.primaryColor.withOpacity(0.5)),
+              size: 32,
+              color: AppConstants.primaryColor.withValues(alpha: 0.5)),
           const SizedBox(height: 12),
           const Text(
             '© 2026 SIGAP SYSTEM',
@@ -306,7 +307,7 @@ class TermsConditionsPage extends StatelessWidget {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: AppConstants.primaryColor.withOpacity(0.1),
+              color: AppConstants.primaryColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Center(

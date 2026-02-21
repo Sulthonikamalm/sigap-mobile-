@@ -25,7 +25,7 @@ class FailedIconWidget extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: Colors.red.shade200
-                        .withOpacity(0.5 + (pulseAnimation.value * 0.3)),
+                        .withValues(alpha: 0.5 + (pulseAnimation.value * 0.3)),
                     width: 2,
                   ),
                 ),
@@ -40,7 +40,7 @@ class FailedIconWidget extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.red.withOpacity(0.12),
+                  color: Colors.red.withValues(alpha: 0.12),
                   blurRadius: 40,
                   spreadRadius: 10,
                 ),

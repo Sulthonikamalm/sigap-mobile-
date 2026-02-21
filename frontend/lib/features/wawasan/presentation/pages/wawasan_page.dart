@@ -5,6 +5,7 @@
 /// - Carousel / Featured Section
 /// - Clean List Layout
 /// - Focus on Content & Discovery
+library wawasan_page;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -184,7 +185,7 @@ class _WawasanPageState extends State<WawasanPage> {
                                           ),
                                         );
                                       },
-                                      child: Text(
+                                      child: const Text(
                                         "Lihat Semua",
                                         style: TextStyle(
                                           fontSize: 12,
@@ -210,8 +211,9 @@ class _WawasanPageState extends State<WawasanPage> {
                                             ? index + 1
                                             : index;
 
-                                    if (actualIndex >= _articles.length)
+                                    if (actualIndex >= _articles.length) {
                                       return null;
+                                    }
 
                                     return Column(
                                       children: [

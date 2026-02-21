@@ -2,6 +2,7 @@
 ///
 /// Menyediakan data statis untuk Edukasi dan Langkah Pelaporan.
 /// Dalam arsitektur nyata, ini bisa diganti dengan API call.
+library wawasan_local_datasource;
 
 import 'package:sigap_mobile/features/wawasan/domain/entities/education_card.dart';
 import 'package:sigap_mobile/features/wawasan/domain/entities/report_step.dart';

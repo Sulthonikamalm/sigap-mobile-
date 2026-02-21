@@ -47,7 +47,7 @@ class ReportFeedCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isPrivacyMode
                     ? Colors.grey.shade100
-                    : categoryColor.withOpacity(0.1),
+                    : categoryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(

@@ -124,11 +124,11 @@ class _CreatePinPageState extends State<CreatePinPage>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppConstants.successColor.withOpacity(0.1),
+                color: AppConstants.successColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppConstants.successColor.withOpacity(0.2),
+                    color: AppConstants.successColor.withValues(alpha: 0.2),
                     blurRadius: 20,
                     spreadRadius: 3,
                   ),
@@ -307,7 +307,7 @@ class _CreatePinPageState extends State<CreatePinPage>
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: AppConstants.primaryColor.withOpacity(0.2),
+                color: AppConstants.primaryColor.withValues(alpha: 0.2),
                 blurRadius: 40,
                 spreadRadius: 5,
               ),
@@ -324,7 +324,7 @@ class _CreatePinPageState extends State<CreatePinPage>
             border: Border.all(color: Colors.grey.shade100, width: 1),
             boxShadow: [
               BoxShadow(
-                color: AppConstants.primaryColor.withOpacity(0.1),
+                color: AppConstants.primaryColor.withValues(alpha: 0.1),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -385,7 +385,7 @@ class _CreatePinPageState extends State<CreatePinPage>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: _isError
-                  ? AppConstants.errorColor.withOpacity(0.8)
+                  ? AppConstants.errorColor.withValues(alpha: 0.8)
                   : isFilled
                       ? AppConstants.primaryColor
                       : Colors.transparent,
@@ -400,7 +400,7 @@ class _CreatePinPageState extends State<CreatePinPage>
               boxShadow: isFilled && !_isError
                   ? [
                       BoxShadow(
-                        color: AppConstants.primaryColor.withOpacity(0.3),
+                        color: AppConstants.primaryColor.withValues(alpha: 0.3),
                         blurRadius: 6,
                         spreadRadius: 1,
                       ),
@@ -483,8 +483,8 @@ class _CreatePinPageState extends State<CreatePinPage>
       child: InkWell(
         onTap: () => _onNumberTap(number),
         borderRadius: BorderRadius.circular(size / 2),
-        splashColor: AppConstants.primaryColor.withOpacity(0.1),
-        highlightColor: AppConstants.primaryColor.withOpacity(0.05),
+        splashColor: AppConstants.primaryColor.withValues(alpha: 0.1),
+        highlightColor: AppConstants.primaryColor.withValues(alpha: 0.05),
         child: SizedBox(
           width: size,
           height: size,
@@ -509,8 +509,8 @@ class _CreatePinPageState extends State<CreatePinPage>
       child: InkWell(
         onTap: _onBackspace,
         borderRadius: BorderRadius.circular(size / 2),
-        splashColor: Colors.grey.withOpacity(0.1),
-        highlightColor: Colors.grey.withOpacity(0.05),
+        splashColor: Colors.grey.withValues(alpha: 0.1),
+        highlightColor: Colors.grey.withValues(alpha: 0.05),
         child: SizedBox(
           width: size,
           height: size,

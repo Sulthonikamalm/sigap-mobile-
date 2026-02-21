@@ -14,7 +14,7 @@ class GuestProfileHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         border: Border(
           bottom: BorderSide(
             color: Colors.grey.shade100,
@@ -55,7 +55,7 @@ class GuestProfileHeader extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -131,7 +131,7 @@ class GuestProfileHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 4,
-                shadowColor: AppConstants.primaryColor.withOpacity(0.4),
+                shadowColor: AppConstants.primaryColor.withValues(alpha: 0.4),
               ),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,

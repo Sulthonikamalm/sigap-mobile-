@@ -39,7 +39,7 @@ class SectionHeader extends StatelessWidget {
     // Default style dengan theme integration
     final defaultStyle = textTheme.labelSmall?.copyWith(
       fontWeight: FontWeight.bold,
-      color: theme.colorScheme.onSurface.withOpacity(0.6),
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
       letterSpacing: 1.5,
     ) ?? const TextStyle(
       fontSize: 12,

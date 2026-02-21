@@ -8,9 +8,18 @@ import 'package:sigap_mobile/features/report_monitor/presentation/pages/report_m
 import 'package:sigap_mobile/features/account/presentation/pages/account_detail_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/about_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/help_center_page.dart';
+import 'package:sigap_mobile/features/account/presentation/pages/edit_profile_page.dart';
+import 'package:sigap_mobile/features/account/presentation/pages/guest_account_page.dart';
 
-class AccountPage extends StatelessWidget {
+class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
+
+  @override
+  State<AccountPage> createState() => _AccountPageState();
+}
+
+class _AccountPageState extends State<AccountPage> {
+  bool _isSecurityModeEnabled = true;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +35,12 @@ class AccountPage extends StatelessWidget {
             imageUrl:
                 'https://lh3.googleusercontent.com/aida-public/AB6AXuB6n1llJuDcsVQPo9Si_GXl8O7Dof1v2P5JP_VH1LeJzLcCmmBaNqCnlTSgN8-3MFOEoc-bhyFXdteifipfbAsXNrSMh36xM4t8gmhU1z859pvzrM3D8-kDHrBvY-xTueBVyVVxkFbeucG3oakphvKS5w9lEVyRVx-RfQGay3OnJgz8oj9N3asxVFmj-iP3opXztRayLD-l2TiVM8xGPGLbcTSOxRAJerm-_KV2wzgPwNSo4hfGeHp49KTxuWgJmPZRsYqEjReT3MDn',
             onEditPressed: () {
-              // TODO: Implement Edit Profile
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const EditProfilePage(),
+                ),
+              );
             },
           ),
 
@@ -42,9 +56,20 @@ class AccountPage extends StatelessWidget {
                   const SectionHeader(title: 'Fitur Utama'),
                   const SizedBox(height: 12),
                   SecurityModeCard(
-                    initialValue: true,
+                    initialValue: _isSecurityModeEnabled,
                     onChanged: (value) {
-                      // TODO: Handle Toggle
+                      setState(() {
+                        _isSecurityModeEnabled = value;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(value
+                              ? 'Mode Keamanan Diaktifkan'
+                              : 'Mode Keamanan Dinonaktifkan'),
+                          duration: const Duration(seconds: 1),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(height: 16),
@@ -118,7 +143,7 @@ class AccountPage extends StatelessWidget {
                   const SizedBox(height: 32),
 
                   // Logout Button
-                  _buildLogoutButton(),
+                  _buildLogoutButton(context),
 
                   const SizedBox(height: 24),
                   Center(
@@ -142,16 +167,17 @@ class AccountPage extends StatelessWidget {
     );
   }
 
-  Widget _buildLogoutButton() {
+  Widget _buildLogoutButton(BuildContext context) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppConstants.urgentColor.withOpacity(0.3)),
+        border:
+            Border.all(color: AppConstants.urgentColor.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: AppConstants.urgentColor.withOpacity(0.05),
+            color: AppConstants.urgentColor.withValues(alpha: 0.05),
             blurRadius: 15,
             offset: const Offset(0, 4),
           ),
@@ -161,7 +187,42 @@ class AccountPage extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // TODO: Implement Logout
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Konfirmasi Keluar'),
+                content:
+                    const Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Batal'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+
+                      // Navigate to Guest Account Page (Logout)
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const GuestAccountPage(),
+                        ),
+                        (route) => false,
+                      );
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Anda telah keluar')),
+                      );
+                    },
+                    child: const Text(
+                      'Keluar',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            );
           },
           borderRadius: BorderRadius.circular(16),
           child: const Padding(

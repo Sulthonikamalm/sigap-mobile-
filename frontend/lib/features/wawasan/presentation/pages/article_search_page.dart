@@ -1,7 +1,8 @@
 /// SEARCH PAGE (Deep UX Implementation)
 ///
-/// Halaman pencarian terdedikasi yang fokus, tenang, dan real-time.
+/// Halaman pencarian terdedikasi yang fokus, tenang, dan real-time
 /// Menggunakan Hero animation dari search bar header untuk transisi yang seamless.
+library article_search_page;
 
 import 'dart:async';
 import 'package:flutter/material.dart';

@@ -1,7 +1,9 @@
-/// Wawasan Feature - Presentation Layer - Widgets
-///
-/// Widget kartu artikel dengan desain "Zero-Thinking".
-/// Bersih, minim distraksi, fokus pada konten visual dan judul.
+// Wawasan Feature - Presentation Layer - Widgets
+//
+// Widget kartu artikel dengan desain "Zero-Thinking".
+// Bersih, minim distraksi, fokus pada konten visual dan judul.
+library article_card_widget;
+
 import 'package:flutter/material.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/wawasan/domain/entities/article.dart';

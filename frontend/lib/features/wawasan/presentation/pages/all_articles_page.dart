@@ -2,6 +2,7 @@
 ///
 /// Halaman daftar lengkap untuk browsing konten tanpa batas.
 /// Fokus pada Infinite Scroll experience (simulated).
+library all_articles_page;
 
 import 'package:flutter/material.dart';
 import 'package:sigap_mobile/features/wawasan/data/repositories/wawasan_repository_impl.dart';

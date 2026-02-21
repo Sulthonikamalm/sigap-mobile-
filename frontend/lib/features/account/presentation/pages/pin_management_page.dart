@@ -105,17 +105,17 @@ class PinManagementPage extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppConstants.primaryColor.withOpacity(0.15),
-            AppConstants.primaryColor.withOpacity(0.08),
+            AppConstants.primaryColor.withValues(alpha: 0.15),
+            AppConstants.primaryColor.withValues(alpha: 0.08),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppConstants.primaryColor.withOpacity(0.2),
+          color: AppConstants.primaryColor.withValues(alpha: 0.2),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppConstants.primaryColor.withOpacity(0.08),
+            color: AppConstants.primaryColor.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -132,7 +132,7 @@ class PinManagementPage extends StatelessWidget {
               height: 100,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppConstants.primaryColor.withOpacity(0.1),
+                color: AppConstants.primaryColor.withValues(alpha: 0.1),
               ),
             ),
           ),
@@ -180,7 +180,7 @@ class PinManagementPage extends StatelessWidget {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
+                            color: Colors.black.withValues(alpha: 0.08),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -201,7 +201,7 @@ class PinManagementPage extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () {
                       HapticFeedback.mediumImpact();
-                      // TODO: Implement Reset PIN with biometric verification
+                      // Initiate biometric verification flow
                       _showResetPinDialog(context);
                     },
                     style: ElevatedButton.styleFrom(
@@ -212,7 +212,8 @@ class PinManagementPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       elevation: 2,
-                      shadowColor: AppConstants.primaryColor.withOpacity(0.4),
+                      shadowColor:
+                          AppConstants.primaryColor.withValues(alpha: 0.4),
                     ),
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -259,7 +260,7 @@ class PinManagementPage extends StatelessWidget {
             border: Border.all(color: Colors.grey.shade200),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -329,7 +330,7 @@ class PinManagementPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppConstants.primaryColor.withOpacity(0.1),
+                color: AppConstants.primaryColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(

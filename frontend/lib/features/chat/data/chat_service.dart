@@ -1,5 +1,6 @@
 /// Chat Feature - Chat Service
 /// Handles communication with Groq API for AI chatbot functionality
+library chat_service;
 
 import 'dart:convert';
 import 'dart:developer' as developer;

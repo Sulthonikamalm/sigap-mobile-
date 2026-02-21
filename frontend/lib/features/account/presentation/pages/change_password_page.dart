@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 
@@ -215,7 +214,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
                   color: Colors.green.shade50,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.check_rounded, color: Colors.green, size: 40),
+                child: const Icon(Icons.check_rounded,
+                    color: Colors.green, size: 40),
               ),
               const SizedBox(height: 16),
               const Text(
@@ -313,10 +313,10 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppConstants.primaryColor.withOpacity(0.05),
+              color: AppConstants.primaryColor.withValues(alpha: 0.05),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.lock_person_rounded,
+            child: const Icon(Icons.lock_person_rounded,
                 size: 60, color: AppConstants.primaryColor),
           ),
           const SizedBox(height: 24),
@@ -404,7 +404,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage>
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 4,
                       offset: const Offset(0, 2))
                 ]

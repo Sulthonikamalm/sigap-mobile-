@@ -154,7 +154,7 @@ class ReportMonitorPage extends StatelessWidget {
           height: 200,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppConstants.primaryColor.withOpacity(0.05),
+            color: AppConstants.primaryColor.withValues(alpha: 0.05),
           ),
         ),
         // Inner ring
@@ -164,7 +164,7 @@ class ReportMonitorPage extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: AppConstants.primaryColor.withOpacity(0.15),
+              color: AppConstants.primaryColor.withValues(alpha: 0.15),
               width: 1,
             ),
           ),
@@ -179,7 +179,7 @@ class ReportMonitorPage extends StatelessWidget {
             border: Border.all(color: Colors.grey.shade200),
             boxShadow: [
               BoxShadow(
-                color: AppConstants.primaryColor.withOpacity(0.1),
+                color: AppConstants.primaryColor.withValues(alpha: 0.1),
                 blurRadius: 30,
                 offset: const Offset(0, 10),
               ),

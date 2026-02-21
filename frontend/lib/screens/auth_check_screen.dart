@@ -48,7 +48,7 @@ class AuthCheckScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 32),
-                Text(
+                const Text(
                   'Akses Pengembangan',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -58,10 +58,10 @@ class AuthCheckScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
+                const Text(
                   'Pilih status login untuk simulasi alur aplikasi',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     color: AppConstants.textSecondary,
                     height: 1.5,

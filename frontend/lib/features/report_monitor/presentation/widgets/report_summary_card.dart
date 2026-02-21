@@ -18,10 +18,10 @@ class ReportSummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppConstants.primaryColor.withOpacity(0.2)),
+        border: Border.all(color: AppConstants.primaryColor.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: AppConstants.primaryColor.withOpacity(0.08),
+            color: AppConstants.primaryColor.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -37,7 +37,7 @@ class ReportSummaryCard extends StatelessWidget {
             child: Icon(
               Icons.folder_open_rounded,
               size: 90,
-              color: AppConstants.primaryColor.withOpacity(0.05),
+              color: AppConstants.primaryColor.withValues(alpha: 0.05),
             ),
           ),
 
@@ -105,10 +105,10 @@ class ReportSummaryCard extends StatelessWidget {
                     height: 72,
                     width: 72,
                     decoration: BoxDecoration(
-                      color: AppConstants.primaryColor.withOpacity(0.1),
+                      color: AppConstants.primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: AppConstants.primaryColor.withOpacity(0.15),
+                        color: AppConstants.primaryColor.withValues(alpha: 0.15),
                       ),
                     ),
                     child: const Icon(

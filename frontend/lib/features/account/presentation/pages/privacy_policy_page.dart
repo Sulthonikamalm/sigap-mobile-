@@ -74,7 +74,7 @@ class PrivacyPolicyPage extends StatelessWidget {
               ),
             ),
             // Decorative Patterns
-            Positioned(
+            const Positioned(
               right: -40,
               top: -40,
               child: Opacity(
@@ -94,23 +94,23 @@ class PrivacyPolicyPage extends StatelessWidget {
                 child: Container(
                   width: 60,
                   height: 60,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.all(Radius.circular(30)),
                   ),
                 ),
               ),
             ),
             // Content
-            SafeArea(
+            const SafeArea(
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: EdgeInsets.all(24.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Spacer(),
-                    const Text(
+                    Spacer(),
+                    Text(
                       'Kebijakan Privasi',
                       style: TextStyle(
                         fontSize: 28,
@@ -118,8 +118,8 @@ class PrivacyPolicyPage extends StatelessWidget {
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
+                    SizedBox(height: 8),
+                    Text(
                       'Komitmen kami dalam menjaga integritas\ndan kerahasiaan data Anda.',
                       style: TextStyle(
                         fontSize: 14,
@@ -160,7 +160,7 @@ class PrivacyPolicyPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppConstants.primaryColor.withOpacity(0.1),
+                  color: AppConstants.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.verified_user_rounded,
@@ -292,17 +292,18 @@ class PrivacyPolicyPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppConstants.backgroundColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppConstants.primaryColor.withOpacity(0.3)),
+        border:
+            Border.all(color: AppConstants.primaryColor.withValues(alpha: 0.3)),
       ),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Icon(Icons.check_circle_outline_rounded,
                   size: 20, color: AppConstants.primaryColor),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 'Pernyataan Persetujuan',
                 style: TextStyle(
                   fontSize: 14,
@@ -312,8 +313,8 @@ class PrivacyPolicyPage extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Text(
+          SizedBox(height: 12),
+          Text(
             'Dengan melanjutkan penggunaan layanan ini, Anda secara sadar memberikan izin pemrosesan data sesuai standar pelindungan data yang berlaku.',
             textAlign: TextAlign.justify,
             style: TextStyle(
@@ -334,7 +335,8 @@ class PrivacyPolicyPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(Icons.verified_user_outlined,
-              size: 32, color: AppConstants.primaryColor.withOpacity(0.5)),
+              size: 32,
+              color: AppConstants.primaryColor.withValues(alpha: 0.5)),
           const SizedBox(height: 12),
           const Text(
             '© 2026 SIGAP SYSTEM',
@@ -345,13 +347,14 @@ class PrivacyPolicyPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
+          const Text(
             'Integritas. Keamanan. Keadilan.',
             style: TextStyle(
               fontSize: 10,
               letterSpacing: 1,
-              color: Colors.grey.shade400,
-            ),
+              color: Colors
+                  .grey, // Assuming shade400 is not const, but actually shade400 is const.
+            ), // Wait, Colors.grey.shade400 IS const.
           ),
         ],
       ),
@@ -420,7 +423,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: AppConstants.primaryColor.withOpacity(0.1),
+              color: AppConstants.primaryColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Center(

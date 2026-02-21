@@ -281,12 +281,12 @@ class _FingerprintSetupPageState extends State<FingerprintSetupPage>
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isScanning
-                    ? AppConstants.primaryColor.withOpacity(0.5)
+                    ? AppConstants.primaryColor.withValues(alpha: 0.5)
                     : Colors.grey.shade200,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppConstants.primaryColor.withOpacity(0.15),
+                  color: AppConstants.primaryColor.withValues(alpha: 0.15),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -339,13 +339,13 @@ class _FingerprintSetupPageState extends State<FingerprintSetupPage>
         style: ElevatedButton.styleFrom(
           backgroundColor: isPrimary
               ? AppConstants.primaryColor
-              : AppConstants.primaryColor.withOpacity(0.6),
+              : AppConstants.primaryColor.withValues(alpha: 0.6),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 0,
-          shadowColor: AppConstants.primaryColor.withOpacity(0.3),
+          shadowColor: AppConstants.primaryColor.withValues(alpha: 0.3),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -6,6 +6,7 @@ import 'package:sigap_mobile/features/wawasan/presentation/pages/wawasan_page.da
 import 'package:sigap_mobile/features/lapor/presentation/pages/lapor_page.dart';
 import 'package:sigap_mobile/features/lapor/presentation/pages/lapor_guest_page.dart';
 import 'package:sigap_mobile/features/chat/presentation/pages/chat_welcome_page.dart';
+import 'package:sigap_mobile/features/home/presentation/pages/home_page.dart';
 
 /// Screen utama dengan navigasi BottomNavigationBar (Beranda, Temanku, Lapor, Wawasan, Akun).
 class MainScreen extends StatefulWidget {
@@ -24,8 +25,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     // Daftar halaman navigasi
     final List<Widget> pages = [
-      const Center(
-          child: Text('Halaman Beranda', style: TextStyle(fontSize: 24))),
+      HomePage(isGuest: widget.isGuest),
       const ChatWelcomePage(),
       const SizedBox(), // Placeholder Lapor (dihandle FAB)
       const WawasanPage(),

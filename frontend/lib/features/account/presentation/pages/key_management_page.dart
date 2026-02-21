@@ -94,7 +94,7 @@ class _KeyManagementPageState extends State<KeyManagementPage>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   )
@@ -205,7 +205,38 @@ class _KeyManagementPageState extends State<KeyManagementPage>
               keyData: _keys[index],
               onCopy: () => _copyToClipboard(_keys[index]['id']),
               onRevoke: () {
-                // TODO: Implement revoke
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Batalkan Kunci'),
+                    content: const Text(
+                        'Apakah Anda yakin ingin membatalkan kunci ini? Tindakan ini tidak dapat dibatalkan.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Batal'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _keys.removeAt(index);
+                          });
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Kunci berhasil dibatalkan'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'Hapus',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
           ),
@@ -219,7 +250,7 @@ class _KeyManagementPageState extends State<KeyManagementPage>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: Colors.white.withOpacity(0.95),
+      backgroundColor: Colors.white.withValues(alpha: 0.95),
       elevation: 0,
       centerTitle: true,
       leading: Padding(
@@ -383,15 +414,15 @@ class _KeyCard extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppConstants.primaryColor.withOpacity(0.08),
-                  AppConstants.primaryColor.withOpacity(0.03),
+                  AppConstants.primaryColor.withValues(alpha: 0.08),
+                  AppConstants.primaryColor.withValues(alpha: 0.03),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: AppConstants.primaryColor.withOpacity(0.15),
+                color: AppConstants.primaryColor.withValues(alpha: 0.15),
                 width: 1,
               ),
             ),
@@ -402,7 +433,7 @@ class _KeyCard extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: AppConstants.primaryColor.withOpacity(0.15),
+                    color: AppConstants.primaryColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
@@ -464,7 +495,7 @@ class _KeyCard extends StatelessWidget {
                   icon: Icons.copy_rounded,
                   label: 'Salin ID',
                   color: AppConstants.primaryColor,
-                  bgColor: AppConstants.primaryColor.withOpacity(0.1),
+                  bgColor: AppConstants.primaryColor.withValues(alpha: 0.1),
                   onTap: onCopy,
                 ),
               ),

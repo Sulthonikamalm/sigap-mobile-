@@ -71,7 +71,7 @@ class _AccountDetailPageState extends State<AccountDetailPage>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: AppConstants.backgroundColor.withOpacity(0.9),
+      backgroundColor: AppConstants.backgroundColor.withValues(alpha: 0.9),
       elevation: 0,
       centerTitle: true,
       leading: IconButton(
@@ -105,7 +105,7 @@ class _AccountDetailPageState extends State<AccountDetailPage>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 20,
                       offset: const Offset(0, 10))
                 ],
@@ -235,7 +235,7 @@ class _ProfileCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 30,
               offset: const Offset(0, 8))
         ],
@@ -282,7 +282,7 @@ class _InfoSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 8,
               offset: const Offset(0, 2))
         ],
@@ -376,7 +376,7 @@ class _EditButton extends StatelessWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18)),
               elevation: 4,
-              shadowColor: Colors.black.withOpacity(0.1),
+              shadowColor: Colors.black.withValues(alpha: 0.1),
             ),
             child: const Text('Edit Informasi Pribadi',
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
@@ -466,7 +466,7 @@ class _SecurityTile extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                    color: AppConstants.primaryColor.withOpacity(0.1),
+                    color: AppConstants.primaryColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle),
                 child: Icon(icon, size: 22, color: AppConstants.primaryColor),
               ),

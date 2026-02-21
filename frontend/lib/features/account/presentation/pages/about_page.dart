@@ -72,7 +72,7 @@ class AboutPage extends StatelessWidget {
               ),
             ),
             // Decorative Patterns
-            Positioned(
+            const Positioned(
               right: -40,
               top: -40,
               child: Opacity(
@@ -92,23 +92,23 @@ class AboutPage extends StatelessWidget {
                 child: Container(
                   width: 100,
                   height: 100,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(50),
+                    borderRadius: BorderRadius.all(Radius.circular(50)),
                   ),
                 ),
               ),
             ),
             // Content
-            SafeArea(
+            const SafeArea(
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: EdgeInsets.all(24.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Spacer(),
-                    const Text(
+                    Spacer(),
+                    Text(
                       'Tentang SIGAP',
                       style: TextStyle(
                         fontSize: 28,
@@ -116,8 +116,8 @@ class AboutPage extends StatelessWidget {
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
+                    SizedBox(height: 8),
+                    Text(
                       'Satuan Tugas Pencegahan & \nPenanganan Kekerasan Seksual',
                       style: TextStyle(
                         fontSize: 14,
@@ -158,7 +158,7 @@ class AboutPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppConstants.primaryColor.withOpacity(0.1),
+                  color: AppConstants.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.shield_rounded,
@@ -212,7 +212,7 @@ class AboutPage extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                AppConstants.primaryColor.withOpacity(0.9),
+                AppConstants.primaryColor.withValues(alpha: 0.9),
                 const Color(0xFF4B86C6),
               ],
               begin: Alignment.topLeft,
@@ -221,7 +221,7 @@ class AboutPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: AppConstants.primaryColor.withOpacity(0.3),
+                color: AppConstants.primaryColor.withValues(alpha: 0.3),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),
@@ -234,7 +234,7 @@ class AboutPage extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
@@ -497,7 +497,8 @@ class AboutPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(Icons.verified_user_outlined,
-              size: 32, color: AppConstants.primaryColor.withOpacity(0.5)),
+              size: 32,
+              color: AppConstants.primaryColor.withValues(alpha: 0.5)),
           const SizedBox(height: 12),
           const Text(
             '© 2026 SIGAP SYSTEM',

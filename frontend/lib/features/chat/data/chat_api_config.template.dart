@@ -6,6 +6,7 @@
 /// 3. The actual config file is in .gitignore and WON'T be pushed
 ///
 /// Get your Groq API key from: https://console.groq.com/keys
+library chat_api_config_template;
 
 class ChatApiConfig {
   // Groq API Configuration

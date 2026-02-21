@@ -22,7 +22,7 @@ class ProfileHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 40, 24, 16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         border: Border(
           bottom: BorderSide(
             color: Colors.grey.shade100,
@@ -68,7 +68,7 @@ class ProfileHeader extends StatelessWidget {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -105,10 +105,10 @@ class ProfileHeader extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppConstants.primaryColor.withOpacity(0.1),
+                      color: AppConstants.primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(50),
                       border: Border.all(
-                        color: AppConstants.primaryColor.withOpacity(0.2),
+                        color: AppConstants.primaryColor.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Row(

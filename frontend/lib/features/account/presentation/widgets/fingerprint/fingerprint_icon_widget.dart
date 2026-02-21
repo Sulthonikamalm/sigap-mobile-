@@ -34,7 +34,7 @@ class FingerprintIconWidget extends StatelessWidget {
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: AppConstants.primaryColor
-                            .withOpacity(0.3 - (pulseAnimation.value * 0.2)),
+                            .withValues(alpha: 0.3 - (pulseAnimation.value * 0.2)),
                         width: 2,
                       ),
                     ),
@@ -51,7 +51,7 @@ class FingerprintIconWidget extends StatelessWidget {
               boxShadow: [
                 BoxShadow(
                   color: AppConstants.primaryColor
-                      .withOpacity(isScanning ? 0.25 : 0.1),
+                      .withValues(alpha: isScanning ? 0.25 : 0.1),
                   blurRadius: 40,
                   spreadRadius: 10,
                 ),
@@ -81,7 +81,7 @@ class FingerprintIconWidget extends StatelessWidget {
               size: 96,
               color: isScanning
                   ? AppConstants.primaryColor
-                  : AppConstants.primaryColor.withOpacity(0.8),
+                  : AppConstants.primaryColor.withValues(alpha: 0.8),
             ),
           ),
         ],

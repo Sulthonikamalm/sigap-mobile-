@@ -153,7 +153,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               border: Border.all(color: Colors.white, width: 4),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -180,7 +180,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 border: Border.all(color: Colors.white, width: 3),
                 boxShadow: [
                   BoxShadow(
-                    color: AppConstants.primaryColor.withOpacity(0.3),
+                    color: AppConstants.primaryColor.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -223,7 +223,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             border: Border.all(color: Colors.grey.shade300),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -284,7 +284,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             border: Border.all(color: Colors.grey.shade300),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -320,7 +320,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.95),
+          color: Colors.white.withValues(alpha: 0.95),
           border: Border(top: BorderSide(color: Colors.grey.shade100)),
         ),
         child: SafeArea(
@@ -335,7 +335,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 4,
-                shadowColor: AppConstants.primaryColor.withOpacity(0.4),
+                shadowColor: AppConstants.primaryColor.withValues(alpha: 0.4),
               ),
               child: const Text(
                 'Simpan Perubahan',
@@ -351,8 +351,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  void _saveChanges() {
-    // TODO: Implement save logic
+  void _saveChanges() async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // Simulate network request
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    // Close loading indicator
+    Navigator.pop(context);
+
+    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('Perubahan berhasil disimpan'),

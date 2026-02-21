@@ -155,7 +155,7 @@ class _HelpCenterPageState extends State<HelpCenterPage> {
               ),
             ),
             // Decorative Patterns
-            Positioned(
+            const Positioned(
               right: -50,
               top: -50,
               child: Opacity(
@@ -201,7 +201,7 @@ class _HelpCenterPageState extends State<HelpCenterPage> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -378,10 +378,10 @@ class _HelpCenterPageState extends State<HelpCenterPage> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppConstants.primaryColor.withOpacity(0.05),
+        color: AppConstants.primaryColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppConstants.primaryColor.withOpacity(0.1),
+          color: AppConstants.primaryColor.withValues(alpha: 0.1),
         ),
       ),
       child: Column(
@@ -451,7 +451,7 @@ class _HelpCenterPageState extends State<HelpCenterPage> {
                 ? null
                 : [
                     BoxShadow(
-                      color: AppConstants.primaryColor.withOpacity(0.3),
+                      color: AppConstants.primaryColor.withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),

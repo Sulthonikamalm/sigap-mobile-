@@ -110,7 +110,8 @@ class _ChatWelcomePageState extends State<ChatWelcomePage>
                         // Efek shadow lembut untuk memberi kesan "floating"
                         boxShadow: [
                           BoxShadow(
-                            color: AppConstants.primaryColor.withOpacity(0.08),
+                            color: AppConstants.primaryColor
+                                .withValues(alpha: 0.08),
                             blurRadius: 40,
                             spreadRadius: 10,
                             offset: const Offset(0, 10),
@@ -142,7 +143,7 @@ class _ChatWelcomePageState extends State<ChatWelcomePage>
                 position: _slideAnimation,
                 child: FadeTransition(
                   opacity: _fadeAnimation,
-                  child: Column(
+                  child: const Column(
                     children: [
                       Text(
                         "Hai, Sahabat...",
@@ -153,7 +154,7 @@ class _ChatWelcomePageState extends State<ChatWelcomePage>
                           letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       Text(
                         "Ada yang ingin dibicarakan?",
                         textAlign: TextAlign.center,
@@ -164,7 +165,7 @@ class _ChatWelcomePageState extends State<ChatWelcomePage>
                           height: 1.2,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       Text(
                         "Aku di sini untuk mendengarkan setiap keluh kesahmu, tanpa menghakimi. Ceritakan saja, lepaskan bebanmu disini.",
                         textAlign: TextAlign.center,
@@ -194,7 +195,8 @@ class _ChatWelcomePageState extends State<ChatWelcomePage>
                       onPressed: _navigateToChat,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppConstants.primaryColor,
-                        shadowColor: AppConstants.primaryColor.withOpacity(0.4),
+                        shadowColor:
+                            AppConstants.primaryColor.withValues(alpha: 0.4),
                         elevation: 8,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),

@@ -28,14 +28,14 @@ class _SecurityModeCardState extends State<SecurityModeCard> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppConstants.primaryColor.withOpacity(0.1),
+        color: AppConstants.primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppConstants.primaryColor.withOpacity(0.3),
+          color: AppConstants.primaryColor.withValues(alpha: 0.3),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 15,
             offset: const Offset(0, 10),
           ),
@@ -52,7 +52,7 @@ class _SecurityModeCardState extends State<SecurityModeCard> {
               child: Icon(
                 Icons.security,
                 size: 120,
-                color: AppConstants.primaryColor.withOpacity(0.05),
+                color: AppConstants.primaryColor.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -109,7 +109,7 @@ class _SecurityModeCardState extends State<SecurityModeCard> {
                 ),
                 Switch.adaptive(
                   value: _isEnabled,
-                  activeColor: AppConstants.primaryColor,
+                  activeTrackColor: AppConstants.primaryColor,
                   onChanged: (value) {
                     setState(() {
                       _isEnabled = value;
@@ -139,14 +139,14 @@ class ReportMonitorButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppConstants.primaryColor.withOpacity(0.1),
+          color: AppConstants.primaryColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppConstants.primaryColor.withOpacity(0.3),
+            color: AppConstants.primaryColor.withValues(alpha: 0.3),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 15,
               offset: const Offset(0, 10),
             ),
@@ -161,7 +161,7 @@ class ReportMonitorButton extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppConstants.primaryColor.withOpacity(0.1),
+                  color: AppConstants.primaryColor.withValues(alpha: 0.1),
                 ),
               ),
               child: const Icon(
@@ -198,7 +198,7 @@ class ReportMonitorButton extends StatelessWidget {
               height: 32,
               width: 32,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 shape: BoxShape.circle,
               ),
               child: const Icon(

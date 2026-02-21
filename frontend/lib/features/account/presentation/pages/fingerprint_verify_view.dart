@@ -168,7 +168,7 @@ class FingerprintVerifyView extends StatelessWidget {
                     boxShadow: [
                       BoxShadow(
                         color: styles.glow
-                            .withOpacity(verifyState == 'failed' ? 0.5 : 0.3),
+                            .withValues(alpha: verifyState == 'failed' ? 0.5 : 0.3),
                         blurRadius: verifyState == 'failed' ? 60 : 50,
                         spreadRadius: verifyState == 'failed' ? 15 : 10,
                       ),
@@ -184,7 +184,7 @@ class FingerprintVerifyView extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppConstants.primaryColor.withOpacity(0.3),
+                        color: AppConstants.primaryColor.withValues(alpha: 0.3),
                         width: 2,
                       ),
                     ),
@@ -198,7 +198,7 @@ class FingerprintVerifyView extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.red.withOpacity(0.5),
+                        color: Colors.red.withValues(alpha: 0.5),
                         width: 3,
                       ),
                     ),
@@ -218,7 +218,7 @@ class FingerprintVerifyView extends StatelessWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: styles.glow.withOpacity(0.15),
+                        color: styles.glow.withValues(alpha: 0.15),
                         blurRadius: 25,
                         offset: const Offset(0, 10),
                       ),
@@ -251,15 +251,15 @@ class FingerprintVerifyView extends StatelessWidget {
         return (
           glow: AppConstants.successColor,
           bg: AppConstants.successColor,
-          border: AppConstants.successColor.withOpacity(0.8),
+          border: AppConstants.successColor.withValues(alpha: 0.8),
           icon: Colors
               .white // Icon color unused in success state (uses check icon)
         );
       case 'failed':
         return (
           glow: AppConstants.errorColor,
-          bg: AppConstants.errorColor.withOpacity(0.1),
-          border: AppConstants.errorColor.withOpacity(0.8),
+          bg: AppConstants.errorColor.withValues(alpha: 0.1),
+          border: AppConstants.errorColor.withValues(alpha: 0.8),
           icon: AppConstants.errorColor
         );
       default: // idle, scanning

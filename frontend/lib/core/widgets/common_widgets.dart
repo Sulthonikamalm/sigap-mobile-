@@ -46,7 +46,7 @@ Widget buildIconContainer({
     width: size,
     height: size,
     decoration: BoxDecoration(
-      color: AppConstants.primaryColor.withOpacity(0.1),
+      color: AppConstants.primaryColor.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(size * 0.286), // 16/56 ratio
     ),
     child: Icon(

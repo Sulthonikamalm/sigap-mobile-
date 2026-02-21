@@ -59,7 +59,7 @@ class GuestProtectedPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: AppConstants.primaryColor.withOpacity(0.08),
+                      color: AppConstants.primaryColor.withValues(alpha: 0.08),
                       blurRadius: 40,
                       offset: const Offset(0, 20),
                       spreadRadius: 0,
@@ -79,10 +79,10 @@ class GuestProtectedPage extends StatelessWidget {
               const SizedBox(height: 48),
 
               // --- 2. COMPELLING COPYWRITING ---
-              Text(
+              const Text(
                 "Akses Terbatas",
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
                   color: textPrimary,
@@ -101,10 +101,10 @@ class GuestProtectedPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 "Keamanan data adalah prioritas kami.",
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppConstants.primaryColor,
@@ -132,7 +132,8 @@ class GuestProtectedPage extends StatelessWidget {
                     backgroundColor: AppConstants.primaryColor,
                     foregroundColor: Colors.white,
                     elevation: 8,
-                    shadowColor: AppConstants.primaryColor.withOpacity(0.4),
+                    shadowColor:
+                        AppConstants.primaryColor.withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),

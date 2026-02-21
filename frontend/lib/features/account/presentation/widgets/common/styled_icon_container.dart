@@ -22,7 +22,7 @@ class StyledIconContainer extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: backgroundColor ?? AppConstants.primaryColor.withOpacity(0.1),
+        color: backgroundColor ?? AppConstants.primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(size * 0.3),
       ),
       child: Icon(
