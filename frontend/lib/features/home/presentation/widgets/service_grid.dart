@@ -58,7 +58,7 @@ class ServiceGrid extends StatelessWidget {
               ),
               _ServiceItem(
                 icon: Icons.groups_rounded,
-                label: "Pencocokan\nAnonim",
+                label: "Coknim",
                 isLocked: isGuest,
               ),
               // Lapor Isu tetap bisa diakses oleh guest
@@ -199,19 +199,12 @@ class _ServiceItem extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            width: 76, // max width to prevent overflow
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              style: TextStyle(
-                fontSize:
-                    11, // slightly reduced to fit "Pencocokan Anonim" gracefully
-                fontWeight: FontWeight.w600,
-                color: isLocked ? Colors.grey.shade400 : AppConstants.textDark,
-                height: 1.1, // tighten line height
-              ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isLocked ? Colors.grey.shade400 : AppConstants.textDark,
             ),
           ),
         ],
