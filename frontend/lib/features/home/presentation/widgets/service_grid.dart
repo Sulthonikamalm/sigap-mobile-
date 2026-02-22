@@ -1,6 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
+import 'package:sigap_mobile/features/lapor/presentation/pages/lapor_isu_page.dart';
+
+// Import for Clean Architecture DI
+import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:sigap_mobile/features/lapor/data/datasources/report_remote_data_source.dart';
+import 'package:sigap_mobile/features/lapor/data/repositories/report_repository_impl.dart';
+import 'package:sigap_mobile/features/lapor/domain/usecases/submit_report_usecase.dart';
+import 'package:sigap_mobile/features/lapor/presentation/provider/lapor_isu_provider.dart';
 
 /// Grid 4 layanan utama dengan efek Glassmorphism.
 /// Mode Guest: Checking, Kalkulator, Komunitas ditimpa ikon kunci + popup login.
@@ -45,6 +54,8 @@ class ServiceGrid extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment:
+                CrossAxisAlignment.start, // <--- KUNCI VERTIKAL SEJAJAR
             children: [
               _ServiceItem(
                 icon: Icons.location_on_rounded,
@@ -63,10 +74,30 @@ class ServiceGrid extends StatelessWidget {
                 isLocked: isGuest,
               ),
               // Lapor Isu tetap bisa diakses oleh guest
-              const _ServiceItem(
+              _ServiceItem(
                 icon: Icons.assignment_add,
                 label: "Lapor Isu",
                 isLocked: false,
+                onTap: () {
+                  // Initialize dependencies for LaporIsuProvider in-place
+                  // In a larger app, this should be handled by GetIt/Injectable
+                  final remoteDataSource =
+                      ReportRemoteDataSourceImpl(client: http.Client());
+                  final repository =
+                      ReportRepositoryImpl(remoteDataSource: remoteDataSource);
+                  final submitUseCase = SubmitReportUseCase(repository);
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChangeNotifierProvider(
+                        create: (_) =>
+                            LaporIsuProvider(submitUseCase: submitUseCase),
+                        child: const LaporIsuPage(),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -82,11 +113,13 @@ class _ServiceItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isLocked;
+  final VoidCallback? onTap;
 
   const _ServiceItem({
     required this.icon,
     required this.label,
     this.isLocked = false,
+    this.onTap,
   });
 
   void _showLoginDialog(BuildContext context) {
@@ -161,7 +194,7 @@ class _ServiceItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: isLocked ? () => _showLoginDialog(context) : null,
+      onTap: isLocked ? () => _showLoginDialog(context) : onTap,
       child: Column(
         children: [
           Container(
@@ -200,12 +233,17 @@ class _ServiceItem extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: isLocked ? Colors.grey.shade400 : AppConstants.textDark,
+          SizedBox(
+            width:
+                72, // <--- KUNCI HORIZONTAL SEJAJAR (MEMAKSA LEBAR COLUMN SAMA RATA)
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isLocked ? Colors.grey.shade400 : AppConstants.textDark,
+              ),
             ),
           ),
         ],

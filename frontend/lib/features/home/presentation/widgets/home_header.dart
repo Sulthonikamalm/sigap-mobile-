@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/core/widgets/blur_extension.dart';
+import 'package:sigap_mobile/features/notification/presentation/pages/notification_page.dart';
 
 /// Widget Header Beranda.
 /// Mode Guest: Sapaan umum + Welcome Card.
@@ -17,7 +18,7 @@ class HomeHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildGreetingRow(),
+          _buildGreetingRow(context),
           const SizedBox(height: 32),
           isGuest ? _buildWelcomeCard() : _buildIdentityCard(),
         ],
@@ -25,7 +26,7 @@ class HomeHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildGreetingRow() {
+  Widget _buildGreetingRow(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -72,45 +73,55 @@ class HomeHeader extends StatelessWidget {
           ],
         ),
         // Glass Notification Button
-        _buildNotificationButton(),
+        _buildNotificationButton(context),
       ],
     );
   }
 
-  Widget _buildNotificationButton() {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.65),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+  Widget _buildNotificationButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const NotificationPage(),
           ),
-        ],
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          const Icon(Icons.notifications_rounded,
-              color: AppConstants.textSecondary, size: 22),
-          if (!isGuest)
-            Positioned(
-              top: 0,
-              right: 0,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: AppConstants.primaryColor,
-                  shape: BoxShape.circle,
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.65),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Icon(Icons.notifications_rounded,
+                color: AppConstants.textSecondary, size: 22),
+            if (!isGuest)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppConstants.primaryColor,
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
