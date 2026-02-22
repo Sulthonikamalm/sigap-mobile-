@@ -52,12 +52,13 @@ class ServiceGrid extends StatelessWidget {
                 isLocked: isGuest,
               ),
               _ServiceItem(
-                icon: Icons.calculate_rounded,
+                icon: Icons.radar_rounded, // Icon yang sesuai untuk Pantau
                 label: "Pantau Aku",
                 isLocked: isGuest,
               ),
               _ServiceItem(
-                icon: Icons.groups_rounded,
+                icon: Icons
+                    .person_search_rounded, // Icon yang sesuai untuk pencarian/matching
                 label: "Coknim",
                 isLocked: isGuest,
               ),
