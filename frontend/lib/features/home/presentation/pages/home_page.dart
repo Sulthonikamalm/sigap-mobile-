@@ -4,6 +4,7 @@ import 'package:sigap_mobile/core/widgets/blur_extension.dart';
 import 'package:sigap_mobile/features/home/presentation/widgets/home_header.dart';
 import 'package:sigap_mobile/features/home/presentation/widgets/service_grid.dart';
 import 'package:sigap_mobile/features/home/presentation/widgets/agenda_card.dart';
+import 'package:sigap_mobile/features/home/presentation/pages/agenda_list_page.dart';
 
 /// Halaman Beranda — Orchestrator ringan.
 /// Mendukung mode Guest (belum login) dan mode Logged In.
@@ -29,7 +30,7 @@ class HomePage extends StatelessWidget {
                 const SizedBox(height: 24),
                 ServiceGrid(isGuest: isGuest),
                 const SizedBox(height: 32),
-                _buildAgendaSection(),
+                _buildAgendaSection(context),
                 const SizedBox(height: 120),
               ],
             ),
@@ -41,7 +42,7 @@ class HomePage extends StatelessWidget {
 
   /// Section Agenda Prioritas.
   /// Jika Guest: judul & tombol "Lihat Semua" tetap muncul, tapi kartu kosong.
-  Widget _buildAgendaSection() {
+  Widget _buildAgendaSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -59,30 +60,40 @@ class HomePage extends StatelessWidget {
                   letterSpacing: -0.3,
                 ),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppConstants.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  children: [
-                    Text(
-                      "Lihat Semua",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppConstants.primaryColor,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AgendaListPage(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppConstants.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    children: [
+                      Text(
+                        "Lihat Semua",
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppConstants.primaryColor,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      color: AppConstants.primaryColor,
-                      size: 14,
-                    ),
-                  ],
+                      SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        color: AppConstants.primaryColor,
+                        size: 14,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

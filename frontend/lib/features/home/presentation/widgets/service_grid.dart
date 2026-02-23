@@ -11,8 +11,9 @@ import 'package:sigap_mobile/features/lapor/data/repositories/report_repository_
 import 'package:sigap_mobile/features/lapor/domain/usecases/submit_report_usecase.dart';
 import 'package:sigap_mobile/features/lapor/presentation/provider/lapor_isu_provider.dart';
 
-/// Grid 4 layanan utama dengan efek Glassmorphism.
-/// Mode Guest: Checking, Kalkulator, Komunitas ditimpa ikon kunci + popup login.
+/// Grid 3 layanan utama dengan efek Glassmorphism.
+/// Pantau Aku & Coknim: terkunci untuk Guest.
+/// Lapor Isu: terbuka untuk semua pengguna.
 class ServiceGrid extends StatelessWidget {
   final bool isGuest;
 
@@ -25,51 +26,27 @@ class ServiceGrid extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "Portal Layanan",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppConstants.textDark,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppConstants.primaryColor.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.more_horiz_rounded,
-                  color: AppConstants.primaryColor,
-                  size: 20,
-                ),
-              ),
-            ],
+          const Text(
+            "Portal Layanan",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppConstants.textDark,
+              letterSpacing: -0.3,
+            ),
           ),
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment:
-                CrossAxisAlignment.start, // <--- KUNCI VERTIKAL SEJAJAR
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _ServiceItem(
-                icon: Icons.location_on_rounded,
-                label: "Checking",
-                isLocked: isGuest,
-              ),
-              _ServiceItem(
-                icon: Icons.radar_rounded, // Icon yang sesuai untuk Pantau
+                icon: Icons.radar_rounded,
                 label: "Pantau Aku",
                 isLocked: isGuest,
               ),
               _ServiceItem(
-                icon: Icons
-                    .person_search_rounded, // Icon yang sesuai untuk pencarian/matching
+                icon: Icons.person_search_rounded,
                 label: "Coknim",
                 isLocked: isGuest,
               ),
@@ -79,8 +56,6 @@ class ServiceGrid extends StatelessWidget {
                 label: "Lapor Isu",
                 isLocked: false,
                 onTap: () {
-                  // Initialize dependencies for LaporIsuProvider in-place
-                  // In a larger app, this should be handled by GetIt/Injectable
                   final remoteDataSource =
                       ReportRemoteDataSourceImpl(client: http.Client());
                   final repository =
