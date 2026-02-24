@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/fingerprint_setup_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/pin_management_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/change_password_page.dart';
-import 'package:sigap_mobile/features/account/presentation/widgets/common/section_header.dart';
+import 'package:sigap_mobile/features/account/presentation/widgets/section_header.dart';
 import 'package:sigap_mobile/features/account/presentation/widgets/security/expandable_security_section.dart';
 import 'package:sigap_mobile/features/account/presentation/widgets/security/security_menu_tile.dart';
 import 'package:sigap_mobile/features/account/presentation/widgets/security/login_prompt_view.dart';

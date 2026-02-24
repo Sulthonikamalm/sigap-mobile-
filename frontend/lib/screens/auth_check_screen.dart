@@ -106,7 +106,7 @@ class AuthCheckScreen extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  'SIGAP Mobile Dev v0.1',
+                  'Sigap Dev v0.1',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,

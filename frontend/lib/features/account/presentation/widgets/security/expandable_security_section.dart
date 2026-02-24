@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sigap_mobile/features/account/presentation/widgets/common/styled_icon_container.dart';
 import 'package:sigap_mobile/features/account/presentation/widgets/common/styled_switch.dart';
-import 'package:sigap_mobile/features/account/presentation/widgets/common/section_header.dart';
+import 'package:sigap_mobile/features/account/presentation/widgets/section_header.dart';
 import 'package:sigap_mobile/features/account/presentation/widgets/security/auth_method_tile.dart';
 
 /// Generic expandable security section (used for App Lock and Key Access)
