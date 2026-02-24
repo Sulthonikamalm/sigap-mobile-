@@ -30,12 +30,22 @@ dependencies:
   http: ^1.2.0
   provider: ^6.1.5+1
   intl: ^0.20.2
+  google_fonts: ^6.2.1
   # dio: ^5.4.0 (uncomment when needed)
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/icon_sigap.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/icon_sigap.png"
 
 flutter:
   uses-material-design: true
@@ -43,4 +53,5 @@ flutter:
   assets:
     - assets/images/
     - assets/images/articles/
+    - assets/images/onboarding/
     - assets/animations/
