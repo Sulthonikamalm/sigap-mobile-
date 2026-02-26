@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/pantau/data/kontak_darurat_data.dart';
+import 'package:sigap_mobile/features/pantau/presentation/pages/aman_pasca_trigger_page.dart';
 
 /// Layar pemberitahuan Bantuan Terkirim.
 /// Layar ini berfokus pada ketenangan dan rasa aman.
@@ -21,6 +22,9 @@ class _TriggerSentPageState extends State<TriggerSentPage>
   final String _lokasiTersegel =
       "Ruang 401 Gedung Dosen lt.4, bimbingan Pak Hendra";
   final DateTime _waktuTrigger = DateTime.now();
+
+  // State untuk proses pengiriman "Aku Aman"
+  bool _isSendingAman = false;
 
   @override
   void initState() {
@@ -469,33 +473,56 @@ class _TriggerSentPageState extends State<TriggerSentPage>
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO placeholder: kembali ke home atau menu utama
-                  Navigator.pop(context);
-                },
+                onPressed: _isSendingAman ? null : _prosesAman,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppConstants.successColor,
+                  disabledBackgroundColor:
+                      AppConstants.successColor.withValues(alpha: 0.6),
                   foregroundColor: Colors.white,
+                  disabledForegroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.check_circle_outline_rounded, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Aku Sudah Aman',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
+                child: _isSendingAman
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Mengirim konfirmasi...',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.check_circle_outline_rounded,
+                              size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Aku Sudah Aman',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -517,6 +544,24 @@ class _TriggerSentPageState extends State<TriggerSentPage>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _prosesAman() async {
+    setState(() {
+      _isSendingAman = true;
+    });
+
+    // Simulasi jaringan/pengiriman konfirmasi aman
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AmanPascaTriggerPage(),
       ),
     );
   }
