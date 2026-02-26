@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/lapor/presentation/pages/lapor_isu_page.dart';
+import 'package:sigap_mobile/features/pantau/presentation/pages/pantau_page.dart';
 
 // Import for Clean Architecture DI
 import 'package:provider/provider.dart';
@@ -44,6 +45,14 @@ class ServiceGrid extends StatelessWidget {
                 icon: Icons.radar_rounded,
                 label: "Pantau Aku",
                 isLocked: isGuest,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PantauPage(),
+                    ),
+                  );
+                },
               ),
               _ServiceItem(
                 icon: Icons.person_search_rounded,
