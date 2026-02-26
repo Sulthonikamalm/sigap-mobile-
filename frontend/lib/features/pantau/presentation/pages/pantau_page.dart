@@ -8,6 +8,7 @@ import 'package:sigap_mobile/features/pantau/presentation/widgets/pantau_header.
 import 'package:sigap_mobile/features/pantau/presentation/widgets/interval_picker.dart';
 import 'package:sigap_mobile/features/pantau/presentation/widgets/pantau_aktif_view.dart';
 import 'package:sigap_mobile/features/pantau/presentation/widgets/pantau_checkin_view.dart';
+import 'package:sigap_mobile/features/pantau/presentation/pages/trigger_sent_page.dart';
 
 /// Halaman "Pantau Aku" — Orchestrator.
 ///
@@ -143,7 +144,15 @@ class _PantauPageState extends State<PantauPage>
             ),
           2 => PantauCheckInView(
               onKonfirmasiAman: _konfirmasiAman,
-              onDarurat: _hentikanPantauan,
+              onDarurat: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TriggerSentPage(),
+                  ),
+                );
+                _hentikanPantauan();
+              },
             ),
           _ => const SizedBox.shrink(),
         },
