@@ -16,7 +16,7 @@ class OverlayCheckinWidget extends StatefulWidget {
 
 class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
   // Durasi konfirmasi check-in (detik)
-  static const int _durasiCheckin = 30;
+  static const int _durasiCheckin = 60;
 
   // Timer countdown
   int _sisaDetik = _durasiCheckin;
@@ -55,20 +55,17 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
 
   void _handleGetaran(int detikSisa) {
     try {
-      if (detikSisa == 15) {
-        // Getar pertama, pendek dan lembut (100ms)
-        Vibration.vibrate(duration: 100, amplitude: 64);
-      } else if (detikSisa == 10) {
-        // Getar kedua, sedikit lebih panjang (150ms)
-        Vibration.vibrate(duration: 150, amplitude: 128);
-      } else if (detikSisa == 5) {
-        // Getar ketiga (200ms)
-        Vibration.vibrate(duration: 200, amplitude: 255);
-      } else if (detikSisa == 2) {
-        // Getar pendek-pendek 3x (SOS ringan)
-        // pattern: wait, vibrate, wait, vibrate, wait, vibrate
+      if (detikSisa == 45) {
+        Vibration.vibrate(duration: 200, amplitude: 100);
+      } else if (detikSisa == 30) {
+        Vibration.vibrate(duration: 300, amplitude: 180);
+      } else if (detikSisa == 15) {
+        Vibration.vibrate(duration: 400, amplitude: 220);
+      } else if (detikSisa <= 10 && detikSisa % 2 == 0) {
+        Vibration.vibrate(duration: 300, amplitude: 255);
+      } else if (detikSisa == 3) {
         Vibration.vibrate(
-          pattern: [0, 100, 100, 100, 100, 100],
+          pattern: [0, 150, 100, 150, 100, 150],
           intensities: [0, 255, 0, 255, 0, 255],
         );
       }

@@ -127,13 +127,14 @@ class _PantauPageState extends State<PantauPage>
   }
 
   void _mintaCheckIn() async {
-    HapticFeedback.heavyImpact();
     _timerInterval?.cancel();
+    _timerInterval = null; // Null-kan supaya tidak bisa jalan lagi
 
+    HapticFeedback.heavyImpact();
     // Vibration dipanggil di sini — sebelum apapun
     // Agar getar SELALU jalan terlepas overlay berhasil atau tidak
     try {
-      Vibration.vibrate(duration: 300, amplitude: 200);
+      Vibration.vibrate(duration: 500, amplitude: 255);
     } catch (_) {}
 
     // PantauCheckInView SELALU ditampilkan — ini PRIMARY
@@ -161,14 +162,7 @@ class _PantauPageState extends State<PantauPage>
           if (data == 'AMAN') {
             _konfirmasiAman();
           } else if (data == 'TIMEOUT') {
-            if (mounted) {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TriggerSentPage(),
-                  ));
-              _hentikanPantauan();
-            }
+            _prosesTimeoutCheckin();
           }
         });
       }
@@ -178,16 +172,34 @@ class _PantauPageState extends State<PantauPage>
     }
   }
 
-  void _konfirmasiAman() {
+  void _prosesTimeoutCheckin() {
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TriggerSentPage()),
+    );
+    _hentikanPantauan();
+  }
+
+  void _konfirmasiAman() async {
     HapticFeedback.mediumImpact();
+
+    // Tutup overlay jika masih aktif
+    try {
+      final isActive = await FlutterOverlayWindow.isActive();
+      if (isActive) await FlutterOverlayWindow.closeOverlay();
+    } catch (_) {}
+
+    if (!mounted) return;
+
     setState(() {
       _state = 1;
-      _sisaDetik = _intervalDipilih * 60;
+      _sisaDetik = _intervalDipilih * 60; // Reset ke interval PENUH
     });
-    _mulaiTimer();
+    _mulaiTimer(); // Mulai lagi dari awal
 
     _tampilkanSnackbar(
-        'Konfirmasi diterima. Timer direset.', AppConstants.successColor);
+        'Aman. Pantauan dilanjutkan.', AppConstants.successColor);
   }
 
   void _hentikanPantauan() async {
@@ -265,6 +277,8 @@ class _PantauPageState extends State<PantauPage>
                 );
                 _hentikanPantauan();
               },
+              onTimeout: _prosesTimeoutCheckin, // BARU
+              timeoutDetik: 60, // BARU — 60 detik bukan 30
             ),
           _ => const SizedBox.shrink(),
         },

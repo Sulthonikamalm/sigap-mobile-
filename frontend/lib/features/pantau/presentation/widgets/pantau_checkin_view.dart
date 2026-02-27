@@ -1,19 +1,80 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
+import 'package:vibration/vibration.dart';
 
 /// Tampilan saat check-in diminta — user harus konfirmasi "aman".
 /// Scroll-safe: menggunakan SingleChildScrollView, bukan Spacer.
 /// Ini adalah tampilan PRIMARY — bukan fallback.
-class PantauCheckInView extends StatelessWidget {
+class PantauCheckInView extends StatefulWidget {
   final VoidCallback onKonfirmasiAman;
   final VoidCallback onDarurat;
+  final VoidCallback onTimeout;
+  final int timeoutDetik;
 
   const PantauCheckInView({
     super.key,
     required this.onKonfirmasiAman,
     required this.onDarurat,
+    required this.onTimeout,
+    this.timeoutDetik = 60,
   });
+
+  @override
+  State<PantauCheckInView> createState() => _PantauCheckInViewState();
+}
+
+class _PantauCheckInViewState extends State<PantauCheckInView> {
+  late int _sisaDetik;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _sisaDetik = widget.timeoutDetik;
+    _mulaiTimerCheckin();
+  }
+
+  void _mulaiTimerCheckin() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return;
+      setState(() {
+        if (_sisaDetik > 0) {
+          _sisaDetik--;
+          _handleVibrasiProgresif(_sisaDetik);
+        } else {
+          t.cancel();
+          widget.onTimeout();
+        }
+      });
+    });
+  }
+
+  void _handleVibrasiProgresif(int sisaDetik) {
+    try {
+      if (sisaDetik == 45) {
+        Vibration.vibrate(duration: 200, amplitude: 100);
+      } else if (sisaDetik == 30) {
+        Vibration.vibrate(duration: 300, amplitude: 180);
+      } else if (sisaDetik == 15) {
+        Vibration.vibrate(duration: 400, amplitude: 220);
+      } else if (sisaDetik <= 10 && sisaDetik % 2 == 0) {
+        Vibration.vibrate(duration: 300, amplitude: 255);
+      } else if (sisaDetik == 3) {
+        Vibration.vibrate(
+          pattern: [0, 150, 100, 150, 100, 150],
+          intensities: [0, 255, 0, 255, 0, 255],
+        );
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,129 +82,162 @@ class PantauCheckInView extends StatelessWidget {
     final paddingH =
         lebarLayar > 480 ? ((lebarLayar - 430) / 2).clamp(24.0, 120.0) : 24.0;
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: paddingH),
-        child: Column(
-          children: [
-            const SizedBox(height: 40),
+    return Column(
+      children: [
+        LinearProgressIndicator(
+          value: _sisaDetik / widget.timeoutDetik,
+          backgroundColor: Colors.grey.shade100,
+          valueColor: AlwaysStoppedAnimation<Color>(
+            _sisaDetik <= 10
+                ? AppConstants.urgentColor
+                : AppConstants.primaryColor,
+          ),
+          minHeight: 4,
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: paddingH),
+              child: Column(
+                children: [
+                  const SizedBox(height: 36),
 
-            // Badge peringatan merah
-            _bangunBadge(),
+                  // Badge peringatan merah
+                  _bangunBadge(),
 
-            const SizedBox(height: 32),
+                  const SizedBox(height: 16),
 
-            // Icon perisai merah
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppConstants.urgentColor.withValues(alpha: 0.08),
-              ),
-              child: const Icon(
-                Icons.security_rounded,
-                size: 56,
-                color: AppConstants.urgentColor,
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            Text(
-              'Apakah Anda Aman?',
-              style: GoogleFonts.poppins(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: AppConstants.textDark,
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                'Tekan tombol di bawah untuk konfirmasi bahwa '
-                'Anda dalam keadaan aman.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: AppConstants.textSecondary,
-                  height: 1.6,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 48),
-
-            // Tombol "Saya Aman"
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: onKonfirmasiAman,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppConstants.successColor,
-                  foregroundColor: Colors.white,
-                  elevation: 4,
-                  shadowColor: AppConstants.successColor.withValues(alpha: 0.3),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
+                  Text(
+                    'Bantuan akan dikirim dalam $_sisaDetik detik',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: _sisaDetik <= 10
+                          ? AppConstants.urgentColor
+                          : AppConstants.textSecondary,
+                      fontWeight:
+                          _sisaDetik <= 10 ? FontWeight.w600 : FontWeight.w400,
+                    ),
                   ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.check_circle_outline_rounded, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'SAYA AMAN',
+
+                  const SizedBox(height: 24),
+
+                  // Icon perisai merah
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppConstants.urgentColor.withValues(alpha: 0.08),
+                    ),
+                    child: const Icon(
+                      Icons.security_rounded,
+                      size: 56,
+                      color: AppConstants.urgentColor,
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  Text(
+                    'Apakah Anda Aman?',
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: AppConstants.textDark,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'Tekan tombol di bawah untuk konfirmasi bahwa '
+                      'Anda dalam keadaan aman.',
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1,
+                        fontSize: 13,
+                        color: AppConstants.textSecondary,
+                        height: 1.6,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+
+                  const SizedBox(height: 48),
+
+                  // Tombol "Saya Aman"
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: widget.onKonfirmasiAman,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppConstants.successColor,
+                        foregroundColor: Colors.white,
+                        elevation: 4,
+                        shadowColor:
+                            AppConstants.successColor.withValues(alpha: 0.3),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.check_circle_outline_rounded,
+                              size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'SAYA AMAN',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Tombol darurat
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: OutlinedButton(
+                      onPressed: widget.onDarurat,
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color:
+                              AppConstants.urgentColor.withValues(alpha: 0.5),
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        'KIRIM SINYAL DARURAT',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppConstants.urgentColor,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+                ],
               ),
             ),
-
-            const SizedBox(height: 12),
-
-            // Tombol darurat
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: OutlinedButton(
-                onPressed: onDarurat,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                    color: AppConstants.urgentColor.withValues(alpha: 0.5),
-                    width: 1.5,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Text(
-                  'KIRIM SINYAL DARURAT',
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppConstants.urgentColor,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 32),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
