@@ -21,6 +21,7 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
   // Timer countdown
   int _sisaDetik = _durasiCheckin;
   Timer? _timer;
+  bool _isStarted = false;
 
   // Trauma-informed fade in
   double _opacity = 0.0;
@@ -36,7 +37,21 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
       });
     });
 
-    // Mulai hitungan mundur
+    // Tunggu instruksi jelas dari main app sebelum mulai countdown dan getar.
+    // Ini mencegah getar acak jika Android tiba-tiba nge-restart Foreground Service ini.
+    FlutterOverlayWindow.overlayListener.listen((event) {
+      if (event == 'START_OVERLAY_CHECKIN' && !_isStarted) {
+        if (mounted) {
+          setState(() {
+            _isStarted = true;
+          });
+        }
+        _mulaiCountdown();
+      }
+    });
+  }
+
+  void _mulaiCountdown() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       setState(() {

@@ -80,11 +80,11 @@ class _PantauPageState extends State<PantauPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
-    // Saat app masuk background atau detached
-    // paksa matikan overlay service
-    if (state == AppLifecycleState.detached ||
-        state == AppLifecycleState.paused) {
+    // Saat app masuk terminal state (detached/swiped awaw)
+    // paksa matikan overlay service dan hapus notifikasi persisten
+    if (state == AppLifecycleState.detached) {
       try {
+        PantauNotificationService.tutupSemua();
         FlutterOverlayWindow.closeOverlay();
       } catch (_) {}
     }
@@ -178,6 +178,20 @@ class _PantauPageState extends State<PantauPage>
             _konfirmasiAman();
           } else if (data == 'TIMEOUT') {
             _prosesTimeoutCheckin();
+          }
+        });
+
+        // Tembak sinyal START_OVERLAY_CHECKIN 6 kali selama 3 detik
+        // Ini memastikan overlay widget menerimanya meskipun engine Flutter untuk background isolate butuh 1-2 detik untuk siap/boot.
+        int attempts = 0;
+        Timer.periodic(const Duration(milliseconds: 500), (t) {
+          if (attempts >= 6) {
+            t.cancel();
+          } else {
+            try {
+              FlutterOverlayWindow.shareData('START_OVERLAY_CHECKIN');
+            } catch (_) {}
+            attempts++;
           }
         });
       }
