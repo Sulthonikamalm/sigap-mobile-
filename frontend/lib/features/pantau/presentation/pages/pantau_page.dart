@@ -30,7 +30,7 @@ class _PantauPageState extends State<PantauPage>
   int _state = 0;
   int _intervalDipilih = 45;
   int _sisaDetik = 0;
-  final List<int> _opsiInterval = [10, 15, 30, 45, 60];
+  final List<int> _opsiInterval = [2, 5, 10, 15, 30, 45, 60];
 
   // ── Timer & Animasi ──
   Timer? _timerInterval;

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
+import 'package:vibration/vibration.dart';
 
 /// Tampilan saat check-in diminta — user harus konfirmasi "aman".
 /// Scroll-safe: menggunakan SingleChildScrollView, bukan Spacer.
-class PantauCheckInView extends StatelessWidget {
+class PantauCheckInView extends StatefulWidget {
   final VoidCallback onKonfirmasiAman;
   final VoidCallback onDarurat;
 
@@ -13,6 +15,21 @@ class PantauCheckInView extends StatelessWidget {
     required this.onKonfirmasiAman,
     required this.onDarurat,
   });
+
+  @override
+  State<PantauCheckInView> createState() => _PantauCheckInViewState();
+}
+
+class _PantauCheckInViewState extends State<PantauCheckInView> {
+  @override
+  void initState() {
+    super.initState();
+    // Getar saat layar check-in muncul agar user sadar
+    HapticFeedback.heavyImpact();
+    try {
+      Vibration.vibrate(duration: 300, amplitude: 200);
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +99,7 @@ class PantauCheckInView extends StatelessWidget {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: onKonfirmasiAman,
+                onPressed: widget.onKonfirmasiAman,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppConstants.successColor,
                   foregroundColor: Colors.white,
@@ -117,7 +134,7 @@ class PantauCheckInView extends StatelessWidget {
               width: double.infinity,
               height: 56,
               child: OutlinedButton(
-                onPressed: onDarurat,
+                onPressed: widget.onDarurat,
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(
                     color: AppConstants.urgentColor.withValues(alpha: 0.5),
