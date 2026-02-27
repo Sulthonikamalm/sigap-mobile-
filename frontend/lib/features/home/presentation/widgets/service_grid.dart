@@ -107,57 +107,46 @@ class ServiceGrid extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Card Pantau Aku
-              Expanded(
-                child: _ServiceCard(
-                  icon: Icons.radar_rounded,
-                  label: "Pantau Aku",
-                  description: "Pantau keamananmu\nsecara berkala",
-                  accentColor: const Color(0xFF0EA5E9),
-                  bgColor: const Color(0xFFEFF6FF),
-                  isLocked: isGuest,
-                  onTap: isGuest
-                      ? () => _showLoginDialog(context)
-                      : () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const PantauPage(),
-                            ),
-                          );
-                        },
-                ),
+              _ServiceItem(
+                icon: Icons.radar_rounded,
+                label: "Pantau Aku",
+                isLocked: isGuest,
+                onTap: isGuest
+                    ? () => _showLoginDialog(context)
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PantauPage(),
+                          ),
+                        );
+                      },
               ),
-              const SizedBox(width: 14),
-              // Card Buat Laporan
-              Expanded(
-                child: _ServiceCard(
-                  icon: Icons.assignment_add,
-                  label: "Buat Laporan",
-                  description: "Laporkan kejadian\nsecara resmi",
-                  accentColor: AppConstants.urgentColor,
-                  bgColor: const Color(0xFFFFF5F5),
-                  isLocked: false,
-                  onTap: () {
-                    final remoteDataSource =
-                        ReportRemoteDataSourceImpl(client: http.Client());
-                    final repository = ReportRepositoryImpl(
-                        remoteDataSource: remoteDataSource);
-                    final submitUseCase = SubmitReportUseCase(repository);
+              _ServiceItem(
+                icon: Icons.assignment_add,
+                label: "Buat Laporan",
+                isLocked: false,
+                onTap: () {
+                  final remoteDataSource =
+                      ReportRemoteDataSourceImpl(client: http.Client());
+                  final repository =
+                      ReportRepositoryImpl(remoteDataSource: remoteDataSource);
+                  final submitUseCase = SubmitReportUseCase(repository);
 
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChangeNotifierProvider(
-                          create: (_) =>
-                              LaporIsuProvider(submitUseCase: submitUseCase),
-                          child: const LaporIsuPage(),
-                        ),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChangeNotifierProvider(
+                        create: (_) =>
+                            LaporIsuProvider(submitUseCase: submitUseCase),
+                        child: const LaporIsuPage(),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -167,22 +156,17 @@ class ServiceGrid extends StatelessWidget {
   }
 }
 
-/// Card layanan besar dengan ikon, label, dan deskripsi.
-class _ServiceCard extends StatelessWidget {
+/// Widget item tunggal pada grid layanan — desain glassmorphism.
+/// Jika [isLocked] = true, ikon ditimpa gembok + tap menampilkan popup login.
+class _ServiceItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String description;
-  final Color accentColor;
-  final Color bgColor;
   final bool isLocked;
   final VoidCallback? onTap;
 
-  const _ServiceCard({
+  const _ServiceItem({
     required this.icon,
     required this.label,
-    required this.description,
-    required this.accentColor,
-    required this.bgColor,
     this.isLocked = false,
     this.onTap,
   });
@@ -191,79 +175,54 @@ class _ServiceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            padding: const EdgeInsets.all(18),
+      child: Column(
+        children: [
+          Container(
+            width: 88,
+            height: 88,
             decoration: BoxDecoration(
-              color: bgColor.withValues(alpha: 0.8),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: accentColor.withValues(alpha: 0.15),
-              ),
+              color: Colors.white.withValues(alpha: 0.65),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
               boxShadow: [
                 BoxShadow(
-                  color: accentColor.withValues(alpha: 0.08),
+                  color: AppConstants.primaryColor.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Ikon
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: isLocked
-                        ? Icon(
-                            Icons.lock_rounded,
-                            color: Colors.grey.shade400,
-                            size: 22,
-                          )
-                        : Icon(
-                            icon,
-                            color: accentColor,
-                            size: 24,
-                          ),
-                  ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Center(
+                  child: isLocked
+                      ? Icon(
+                          Icons.lock_rounded,
+                          color: Colors.grey.shade400,
+                          size: 30,
+                        )
+                      : Icon(
+                          icon,
+                          color: AppConstants.primaryColor,
+                          size: 34,
+                        ),
                 ),
-                const SizedBox(height: 14),
-                // Label
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color:
-                        isLocked ? Colors.grey.shade400 : AppConstants.textDark,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                // Deskripsi
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isLocked
-                        ? Colors.grey.shade400
-                        : AppConstants.textSecondary,
-                    height: 1.4,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isLocked ? Colors.grey.shade400 : AppConstants.textDark,
+            ),
+          ),
+        ],
       ),
     );
   }
