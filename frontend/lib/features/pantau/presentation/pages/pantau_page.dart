@@ -36,6 +36,9 @@ class _PantauPageState extends State<PantauPage>
   Timer? _timerInterval;
   late AnimationController _pulseController;
 
+  // ── Overlay ──
+  StreamSubscription? _overlaySubscription;
+
   // ── Input ──
   final TextEditingController _lokasiController = TextEditingController();
   static const int _batasKarakter = 100;
@@ -53,6 +56,7 @@ class _PantauPageState extends State<PantauPage>
   @override
   void dispose() {
     _timerInterval?.cancel();
+    _overlaySubscription?.cancel();
     _pulseController.dispose();
     _lokasiController.dispose();
     super.dispose();
@@ -62,15 +66,15 @@ class _PantauPageState extends State<PantauPage>
   // AKSI
   // ═══════════════════════════════════
 
-  void _mintaPermisiOverlay() async {
+  Future<void> _mintaPermisiOverlay() async {
     final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
     if (!hasPermission) {
       await FlutterOverlayWindow.requestPermission();
     }
   }
 
-  void _aktifkanPantauan() {
-    _mintaPermisiOverlay();
+  void _aktifkanPantauan() async {
+    await _mintaPermisiOverlay();
     HapticFeedback.mediumImpact();
     setState(() {
       _state = 1;
@@ -82,10 +86,11 @@ class _PantauPageState extends State<PantauPage>
   void _mulaiTimer() {
     _timerInterval?.cancel();
     _timerInterval = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_sisaDetik > 1) {
+      if (_sisaDetik > 0) {
         setState(() => _sisaDetik--);
-      } else {
-        _mintaCheckIn();
+        if (_sisaDetik == 0) {
+          _mintaCheckIn();
+        }
       }
     });
   }
@@ -103,12 +108,16 @@ class _PantauPageState extends State<PantauPage>
         alignment: OverlayAlignment.center,
         flag: OverlayFlag.defaultFlag,
       );
-      // Listen untuk respons dari overlay
-      FlutterOverlayWindow.overlayListener.listen((data) {
+
+      // Cancel listener sebelumnya jika ada (cegah penumpukan)
+      await _overlaySubscription?.cancel();
+
+      // Listen untuk respons dari overlay — simpan subscription
+      _overlaySubscription =
+          FlutterOverlayWindow.overlayListener.listen((data) {
         if (data == 'AMAN') {
           _konfirmasiAman();
         } else if (data == 'TIMEOUT') {
-          // Navigasi ke TriggerSentPage
           if (mounted) {
             Navigator.push(
                 context,

@@ -40,35 +40,37 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
         if (_sisaDetik > 0) {
           _sisaDetik--;
           _handleGetaran(_sisaDetik);
-        } else {
-          // Timeout! Stop timer dan beritahu aplikasi
-          timer.cancel();
-          _triggerTimeout();
+
+          if (_sisaDetik == 0) {
+            timer.cancel();
+            _triggerTimeout();
+          }
         }
       });
     });
   }
 
-  void _handleGetaran(int detikSisa) async {
-    bool? hasVibrator = await Vibration.hasVibrator();
-    if (hasVibrator != true) return;
-
-    if (detikSisa == 15) {
-      // Getar pertama, pendek dan lembut (100ms)
-      Vibration.vibrate(duration: 100, amplitude: 64);
-    } else if (detikSisa == 10) {
-      // Getar kedua, sedikit lebih panjang (150ms)
-      Vibration.vibrate(duration: 150, amplitude: 128);
-    } else if (detikSisa == 5) {
-      // Getar ketiga (200ms)
-      Vibration.vibrate(duration: 200, amplitude: 255);
-    } else if (detikSisa == 2) {
-      // Getar pendek-pendek 3x (SOS ringan)
-      // pattern: wait, vibrate, wait, vibrate, wait, vibrate
-      Vibration.vibrate(
-        pattern: [0, 100, 100, 100, 100, 100],
-        intensities: [0, 255, 0, 255, 0, 255],
-      );
+  void _handleGetaran(int detikSisa) {
+    try {
+      if (detikSisa == 15) {
+        // Getar pertama, pendek dan lembut (100ms)
+        Vibration.vibrate(duration: 100, amplitude: 64);
+      } else if (detikSisa == 10) {
+        // Getar kedua, sedikit lebih panjang (150ms)
+        Vibration.vibrate(duration: 150, amplitude: 128);
+      } else if (detikSisa == 5) {
+        // Getar ketiga (200ms)
+        Vibration.vibrate(duration: 200, amplitude: 255);
+      } else if (detikSisa == 2) {
+        // Getar pendek-pendek 3x (SOS ringan)
+        // pattern: wait, vibrate, wait, vibrate, wait, vibrate
+        Vibration.vibrate(
+          pattern: [0, 100, 100, 100, 100, 100],
+          intensities: [0, 255, 0, 255, 0, 255],
+        );
+      }
+    } catch (_) {
+      // Abaikan error (fail silently jika plugin haptic terblokir dari background service)
     }
   }
 
@@ -78,19 +80,26 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
     super.dispose();
   }
 
-  void _triggerAman() async {
+  void _triggerAman() {
     _timer?.cancel();
-    // Kirim pesan ke main app
-    await FlutterOverlayWindow.shareData('AMAN');
-    // Tutup overlay
-    await FlutterOverlayWindow.closeOverlay();
+
+    // Fire and forget, hapus await dan amankan dengan try catch
+    // Karena dipanggil dari background service tanpa UI context penuh
+    try {
+      FlutterOverlayWindow.shareData('AMAN');
+    } catch (_) {}
+    try {
+      FlutterOverlayWindow.closeOverlay();
+    } catch (_) {}
   }
 
-  void _triggerTimeout() async {
-    // Kirim pesan ke main app bahwa user tidak merespon
-    await FlutterOverlayWindow.shareData('TIMEOUT');
-    // Tutup overlay
-    await FlutterOverlayWindow.closeOverlay();
+  void _triggerTimeout() {
+    try {
+      FlutterOverlayWindow.shareData('TIMEOUT');
+    } catch (_) {}
+    try {
+      FlutterOverlayWindow.closeOverlay();
+    } catch (_) {}
   }
 
   @override
