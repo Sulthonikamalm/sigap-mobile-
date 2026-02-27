@@ -9,6 +9,7 @@ import 'package:sigap_mobile/features/pantau/presentation/widgets/interval_picke
 import 'package:sigap_mobile/features/pantau/presentation/widgets/pantau_aktif_view.dart';
 import 'package:sigap_mobile/features/pantau/presentation/widgets/pantau_checkin_view.dart';
 import 'package:sigap_mobile/features/pantau/presentation/pages/trigger_sent_page.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 
 /// Halaman "Pantau Aku" — Orchestrator.
 ///
@@ -61,7 +62,15 @@ class _PantauPageState extends State<PantauPage>
   // AKSI
   // ═══════════════════════════════════
 
+  void _mintaPermisiOverlay() async {
+    final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
+    if (!hasPermission) {
+      await FlutterOverlayWindow.requestPermission();
+    }
+  }
+
   void _aktifkanPantauan() {
+    _mintaPermisiOverlay();
     HapticFeedback.mediumImpact();
     setState(() {
       _state = 1;
@@ -81,10 +90,39 @@ class _PantauPageState extends State<PantauPage>
     });
   }
 
-  void _mintaCheckIn() {
+  void _mintaCheckIn() async {
     HapticFeedback.heavyImpact();
     _timerInterval?.cancel();
-    setState(() => _state = 2);
+
+    // Coba launch overlay
+    final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
+    if (hasPermission) {
+      await FlutterOverlayWindow.showOverlay(
+        height: 280,
+        width: WindowSize.matchParent,
+        alignment: OverlayAlignment.center,
+        flag: OverlayFlag.defaultFlag,
+      );
+      // Listen untuk respons dari overlay
+      FlutterOverlayWindow.overlayListener.listen((data) {
+        if (data == 'AMAN') {
+          _konfirmasiAman();
+        } else if (data == 'TIMEOUT') {
+          // Navigasi ke TriggerSentPage
+          if (mounted) {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TriggerSentPage(),
+                ));
+            _hentikanPantauan();
+          }
+        }
+      });
+    } else {
+      // Fallback: gunakan PantauCheckInView yang sudah ada
+      setState(() => _state = 2);
+    }
   }
 
   void _konfirmasiAman() {

@@ -9,9 +9,9 @@ import 'package:sigap_mobile/features/pantau/overlay/overlay_checkin_widget.dart
 void overlayMain() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(
-    MaterialApp(
+    const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const OverlayCheckinWidget(),
+      home: OverlayCheckinWidget(),
     ),
   );
 }
