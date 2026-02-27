@@ -12,6 +12,7 @@ import 'package:sigap_mobile/features/pantau/presentation/widgets/pantau_checkin
 import 'package:sigap_mobile/features/pantau/presentation/pages/trigger_sent_page.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:sigap_mobile/features/pantau/services/pantau_notification_service.dart';
 
 /// Halaman "Pantau Aku" — Orchestrator.
 ///
@@ -48,6 +49,7 @@ class _PantauPageState extends State<PantauPage>
   @override
   void initState() {
     super.initState();
+    PantauNotificationService.init();
     WidgetsBinding.instance.addObserver(this);
     _pulseController = AnimationController(
       vsync: this,
@@ -63,6 +65,7 @@ class _PantauPageState extends State<PantauPage>
     _pulseController.dispose();
     _lokasiController.dispose();
     WidgetsBinding.instance.removeObserver(this);
+    PantauNotificationService.tutupSemua();
 
     // Paksa tutup overlay saat widget di-dispose
     // Cover kasus user navigasi keluar tanpa menekan hentikan
@@ -111,6 +114,7 @@ class _PantauPageState extends State<PantauPage>
       _state = 1;
       _sisaDetik = _intervalDipilih * 60;
     });
+    PantauNotificationService.tampilkanPantauanAktif(_intervalDipilih);
     _mulaiTimer();
   }
 
@@ -119,7 +123,17 @@ class _PantauPageState extends State<PantauPage>
     _timerInterval = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_sisaDetik > 0) {
         setState(() => _sisaDetik--);
-        if (_sisaDetik == 0) {
+
+        // Check-in dipicu 3 menit sebelum habis
+        // Minimal interval harus > 3 menit agar bermakna
+        // Jika interval <= 3 menit, trigger di separuh waktu
+        final triggerDiDetik = _intervalDipilih > 3
+            ? 180 // 3 menit dalam detik
+            : (_intervalDipilih * 60) ~/ 2;
+
+        if (_sisaDetik == triggerDiDetik) {
+          timer.cancel();
+          _timerInterval = null;
           _mintaCheckIn();
         }
       }
@@ -140,6 +154,7 @@ class _PantauPageState extends State<PantauPage>
     // PantauCheckInView SELALU ditampilkan — ini PRIMARY
     // Bukan fallback, bukan opsional
     setState(() => _state = 2);
+    PantauNotificationService.tampilkanCheckinDiperlukan();
 
     // Overlay dicoba sebagai TAMBAHAN opsional — best effort
     // Jika overlay gagal, PantauCheckInView sudah tampil
@@ -196,6 +211,8 @@ class _PantauPageState extends State<PantauPage>
       _state = 1;
       _sisaDetik = _intervalDipilih * 60; // Reset ke interval PENUH
     });
+    PantauNotificationService.tutupCheckin();
+    PantauNotificationService.tampilkanPantauanAktif(_intervalDipilih);
     _mulaiTimer(); // Mulai lagi dari awal
 
     _tampilkanSnackbar(
@@ -205,6 +222,7 @@ class _PantauPageState extends State<PantauPage>
   void _hentikanPantauan() async {
     _timerInterval?.cancel();
     _overlaySubscription?.cancel();
+    PantauNotificationService.tutupSemua();
 
     // Matikan overlay service sebelum reset state
     try {
@@ -278,7 +296,7 @@ class _PantauPageState extends State<PantauPage>
                 _hentikanPantauan();
               },
               onTimeout: _prosesTimeoutCheckin, // BARU
-              timeoutDetik: 60, // BARU — 60 detik bukan 30
+              timeoutDetik: 90, // BARU — 90 detik
             ),
           _ => const SizedBox.shrink(),
         },

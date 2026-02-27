@@ -16,7 +16,7 @@ class OverlayCheckinWidget extends StatefulWidget {
 
 class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
   // Durasi konfirmasi check-in (detik)
-  static const int _durasiCheckin = 60;
+  static const int _durasiCheckin = 90;
 
   // Timer countdown
   int _sisaDetik = _durasiCheckin;
@@ -55,17 +55,30 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
 
   void _handleGetaran(int detikSisa) {
     try {
-      if (detikSisa == 45) {
-        Vibration.vibrate(duration: 200, amplitude: 100);
-      } else if (detikSisa == 30) {
-        Vibration.vibrate(duration: 300, amplitude: 180);
-      } else if (detikSisa == 15) {
-        Vibration.vibrate(duration: 400, amplitude: 220);
-      } else if (detikSisa <= 10 && detikSisa % 2 == 0) {
-        Vibration.vibrate(duration: 300, amplitude: 255);
-      } else if (detikSisa == 3) {
+      // FASE 1: getar setiap 10 detik (detik 80 sampai 30)
+      if (detikSisa > 30 && detikSisa % 10 == 0) {
+        Vibration.vibrate(duration: 250, amplitude: 150);
+      }
+      // Transisi ke fase 2 (pengingat ekstra keras di detik 30)
+      else if (detikSisa == 30) {
         Vibration.vibrate(
-          pattern: [0, 150, 100, 150, 100, 150],
+          pattern: [0, 200, 100, 200],
+          intensities: [0, 200, 0, 200],
+        );
+      }
+      // FASE 2: getar setiap 5 detik, makin keras (detik 25 sampai 5)
+      else if (detikSisa <= 25 && detikSisa > 0 && detikSisa % 5 == 0) {
+        final durasi = 200 + ((25 - detikSisa) * 10);
+        final amplitudo = 180 + ((25 - detikSisa) * 5);
+        Vibration.vibrate(
+          duration: durasi.clamp(200, 500),
+          amplitude: amplitudo.clamp(180, 255),
+        );
+      }
+      // Final SOS di 3 detik terakhir
+      else if (detikSisa == 3) {
+        Vibration.vibrate(
+          pattern: [0, 100, 80, 100, 80, 100],
           intensities: [0, 255, 0, 255, 0, 255],
         );
       }
