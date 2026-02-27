@@ -11,6 +11,7 @@ import 'package:sigap_mobile/features/pantau/presentation/widgets/pantau_aktif_v
 import 'package:sigap_mobile/features/pantau/presentation/widgets/pantau_checkin_view.dart';
 import 'package:sigap_mobile/features/pantau/presentation/pages/trigger_sent_page.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// Halaman "Pantau Aku" — Orchestrator.
 ///
@@ -99,6 +100,7 @@ class _PantauPageState extends State<PantauPage>
 
   void _aktifkanPantauan() async {
     await _mintaPermisiOverlay();
+    await Permission.notification.request();
     HapticFeedback.mediumImpact();
     setState(() {
       _state = 1;
