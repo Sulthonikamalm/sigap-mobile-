@@ -43,9 +43,12 @@ class _PantauCheckInViewState extends State<PantauCheckInView> {
         if (_sisaDetik > 0) {
           _sisaDetik--;
           _handleVibrasiProgresif(_sisaDetik);
-        } else {
-          t.cancel();
-          widget.onTimeout();
+
+          if (_sisaDetik == 0) {
+            t.cancel();
+            _handleVibrasiProgresif(0);
+            widget.onTimeout();
+          }
         }
       });
     });
@@ -53,8 +56,22 @@ class _PantauCheckInViewState extends State<PantauCheckInView> {
 
   void _handleVibrasiProgresif(int sisaDetik) {
     try {
+      // Detik 5: Peringatan Keras Menjelang Habis
+      if (sisaDetik == 5) {
+        Vibration.vibrate(
+          pattern: [0, 500, 200, 500],
+          intensities: [0, 255, 0, 255],
+        );
+      }
+      // Detik 0: Getar Super Keras Tanda Darurat Terkirim
+      else if (sisaDetik == 0) {
+        Vibration.vibrate(
+          pattern: [0, 1000, 500, 1000],
+          intensities: [0, 255, 0, 255],
+        );
+      }
       // FASE 1: getar setiap 10 detik (detik 80 sampai 30)
-      if (sisaDetik > 30 && sisaDetik % 10 == 0) {
+      else if (sisaDetik > 30 && sisaDetik % 10 == 0) {
         Vibration.vibrate(duration: 250, amplitude: 150);
       }
       // Transisi ke fase 2 (pengingat ekstra keras di detik 30)
@@ -64,11 +81,10 @@ class _PantauCheckInViewState extends State<PantauCheckInView> {
           intensities: [0, 200, 0, 200],
         );
       }
-      // FASE 2: getar setiap 5 detik, makin keras (detik 25 sampai 5)
-      else if (sisaDetik <= 25 && sisaDetik > 0 && sisaDetik % 5 == 0) {
-        // Makin kecil sisaDetik, makin panjang dan keras getarannya
-        final durasi = 200 + ((25 - sisaDetik) * 10); // 200ms → 400ms
-        final amplitudo = 180 + ((25 - sisaDetik) * 5); // 180 → 255
+      // FASE 2: getar setiap 5 detik, makin keras (detik 25 sampai 10)
+      else if (sisaDetik <= 25 && sisaDetik > 5 && sisaDetik % 5 == 0) {
+        final durasi = 200 + ((25 - sisaDetik) * 10);
+        final amplitudo = 180 + ((25 - sisaDetik) * 5);
         Vibration.vibrate(
           duration: durasi.clamp(200, 500),
           amplitude: amplitudo.clamp(180, 255),

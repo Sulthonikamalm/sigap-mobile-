@@ -61,6 +61,7 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
 
           if (_sisaDetik == 0) {
             timer.cancel();
+            _handleGetaran(0);
             _triggerTimeout();
           }
         }
@@ -70,8 +71,22 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
 
   void _handleGetaran(int detikSisa) {
     try {
+      // Detik 5: Peringatan Keras Menjelang Habis
+      if (detikSisa == 5) {
+        Vibration.vibrate(
+          pattern: [0, 500, 200, 500],
+          intensities: [0, 255, 0, 255],
+        );
+      }
+      // Detik 0: Getar Super Keras Tanda Darurat Terkirim
+      else if (detikSisa == 0) {
+        Vibration.vibrate(
+          pattern: [0, 1000, 500, 1000],
+          intensities: [0, 255, 0, 255],
+        );
+      }
       // FASE 1: getar setiap 10 detik (detik 80 sampai 30)
-      if (detikSisa > 30 && detikSisa % 10 == 0) {
+      else if (detikSisa > 30 && detikSisa % 10 == 0) {
         Vibration.vibrate(duration: 250, amplitude: 150);
       }
       // Transisi ke fase 2 (pengingat ekstra keras di detik 30)
@@ -81,8 +96,8 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
           intensities: [0, 200, 0, 200],
         );
       }
-      // FASE 2: getar setiap 5 detik, makin keras (detik 25 sampai 5)
-      else if (detikSisa <= 25 && detikSisa > 0 && detikSisa % 5 == 0) {
+      // FASE 2: getar setiap 5 detik, makin keras (detik 25 sampai 10)
+      else if (detikSisa <= 25 && detikSisa > 5 && detikSisa % 5 == 0) {
         final durasi = 200 + ((25 - detikSisa) * 10);
         final amplitudo = 180 + ((25 - detikSisa) * 5);
         Vibration.vibrate(
