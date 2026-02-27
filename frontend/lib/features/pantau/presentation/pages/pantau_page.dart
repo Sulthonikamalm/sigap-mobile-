@@ -99,8 +99,13 @@ class _PantauPageState extends State<PantauPage>
   }
 
   void _aktifkanPantauan() async {
+    // Request semua permission yang dibutuhkan sekaligus
     await _mintaPermisiOverlay();
-    await Permission.notification.request();
+    await [
+      Permission.notification,
+      Permission.systemAlertWindow,
+    ].request();
+
     HapticFeedback.mediumImpact();
     setState(() {
       _state = 1;
