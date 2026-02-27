@@ -15,8 +15,11 @@ class OverlayCheckinWidget extends StatefulWidget {
 }
 
 class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
+  // Durasi konfirmasi check-in (detik)
+  static const int _durasiCheckin = 30;
+
   // Timer countdown
-  int _sisaDetik = 30; // hardcode 30s as requested
+  int _sisaDetik = _durasiCheckin;
   Timer? _timer;
 
   // Trauma-informed fade in
@@ -209,7 +212,7 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
                     LayoutBuilder(builder: (context, constraints) {
                       final width = constraints.maxWidth;
                       // Progress mengecil ke arah kiri
-                      final barWidth = width * (_sisaDetik / 30);
+                      final barWidth = width * (_sisaDetik / _durasiCheckin);
 
                       return Container(
                         width: width,
