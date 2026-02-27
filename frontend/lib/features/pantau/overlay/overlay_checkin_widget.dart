@@ -97,12 +97,19 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
   }
 
   void _triggerTimeout() {
+    _timer?.cancel(); // Cancel timer DULU sebelum apapun
+
     try {
       FlutterOverlayWindow.shareData('TIMEOUT');
     } catch (_) {}
-    try {
-      FlutterOverlayWindow.closeOverlay();
-    } catch (_) {}
+
+    // Delay 300ms pastikan shareData terkirim ke pantau_page
+    // sebelum overlay ditutup
+    Future.delayed(const Duration(milliseconds: 300), () {
+      try {
+        FlutterOverlayWindow.closeOverlay();
+      } catch (_) {}
+    });
   }
 
   @override

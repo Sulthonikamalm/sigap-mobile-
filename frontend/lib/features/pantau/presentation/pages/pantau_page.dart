@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:vibration/vibration.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/pantau/presentation/pages/pantau_kontak_page.dart';
@@ -25,7 +26,7 @@ class PantauPage extends StatefulWidget {
 }
 
 class _PantauPageState extends State<PantauPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   // ── State ──
   int _state = 0;
   int _intervalDipilih = 45;
@@ -46,6 +47,7 @@ class _PantauPageState extends State<PantauPage>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
@@ -59,7 +61,29 @@ class _PantauPageState extends State<PantauPage>
     _overlaySubscription?.cancel();
     _pulseController.dispose();
     _lokasiController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+
+    // Paksa tutup overlay saat widget di-dispose
+    // Cover kasus user navigasi keluar tanpa menekan hentikan
+    try {
+      FlutterOverlayWindow.closeOverlay();
+    } catch (_) {}
+
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    // Saat app masuk background atau detached
+    // paksa matikan overlay service
+    if (state == AppLifecycleState.detached ||
+        state == AppLifecycleState.paused) {
+      try {
+        FlutterOverlayWindow.closeOverlay();
+      } catch (_) {}
+    }
   }
 
   // ═══════════════════════════════════
@@ -99,38 +123,51 @@ class _PantauPageState extends State<PantauPage>
     HapticFeedback.heavyImpact();
     _timerInterval?.cancel();
 
-    // Coba launch overlay
-    final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
-    if (hasPermission) {
-      await FlutterOverlayWindow.showOverlay(
-        height: 280,
-        width: WindowSize.matchParent,
-        alignment: OverlayAlignment.center,
-        flag: OverlayFlag.defaultFlag,
-      );
+    // Vibration dipanggil di sini — sebelum apapun
+    // Agar getar SELALU jalan terlepas overlay berhasil atau tidak
+    try {
+      Vibration.vibrate(duration: 300, amplitude: 200);
+    } catch (_) {}
 
-      // Cancel listener sebelumnya jika ada (cegah penumpukan)
-      await _overlaySubscription?.cancel();
+    // PantauCheckInView SELALU ditampilkan — ini PRIMARY
+    // Bukan fallback, bukan opsional
+    setState(() => _state = 2);
 
-      // Listen untuk respons dari overlay — simpan subscription
-      _overlaySubscription =
-          FlutterOverlayWindow.overlayListener.listen((data) {
-        if (data == 'AMAN') {
-          _konfirmasiAman();
-        } else if (data == 'TIMEOUT') {
-          if (mounted) {
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const TriggerSentPage(),
-                ));
-            _hentikanPantauan();
+    // Overlay dicoba sebagai TAMBAHAN opsional — best effort
+    // Jika overlay gagal, PantauCheckInView sudah tampil
+    try {
+      final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
+      if (hasPermission) {
+        await FlutterOverlayWindow.showOverlay(
+          height: 280,
+          width: WindowSize.matchParent,
+          alignment: OverlayAlignment.center,
+          flag: OverlayFlag.defaultFlag,
+        );
+
+        // Cancel listener sebelumnya jika ada (cegah penumpukan)
+        await _overlaySubscription?.cancel();
+
+        // Listen untuk respons dari overlay
+        _overlaySubscription =
+            FlutterOverlayWindow.overlayListener.listen((data) {
+          if (data == 'AMAN') {
+            _konfirmasiAman();
+          } else if (data == 'TIMEOUT') {
+            if (mounted) {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TriggerSentPage(),
+                  ));
+              _hentikanPantauan();
+            }
           }
-        }
-      });
-    } else {
-      // Fallback: gunakan PantauCheckInView yang sudah ada
-      setState(() => _state = 2);
+        });
+      }
+    } catch (_) {
+      // Abaikan semua error overlay
+      // PantauCheckInView sudah tampil sebagai primary
     }
   }
 
@@ -146,9 +183,21 @@ class _PantauPageState extends State<PantauPage>
         'Konfirmasi diterima. Timer direset.', AppConstants.successColor);
   }
 
-  void _hentikanPantauan() {
-    HapticFeedback.mediumImpact();
+  void _hentikanPantauan() async {
     _timerInterval?.cancel();
+    _overlaySubscription?.cancel();
+
+    // Matikan overlay service sebelum reset state
+    try {
+      final isActive = await FlutterOverlayWindow.isActive();
+      if (isActive) {
+        await FlutterOverlayWindow.closeOverlay();
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    HapticFeedback.mediumImpact();
     setState(() {
       _state = 0;
       _sisaDetik = 0;
