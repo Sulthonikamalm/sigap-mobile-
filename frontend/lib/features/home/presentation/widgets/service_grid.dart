@@ -178,11 +178,11 @@ class _ServiceItem extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 88,
-            height: 88,
+            width: 90,
+            height: 90,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.65),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
               boxShadow: [
                 BoxShadow(
@@ -193,7 +193,7 @@ class _ServiceItem extends StatelessWidget {
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                 child: Center(
@@ -201,12 +201,12 @@ class _ServiceItem extends StatelessWidget {
                       ? Icon(
                           Icons.lock_rounded,
                           color: Colors.grey.shade400,
-                          size: 30,
+                          size: 32,
                         )
                       : Icon(
                           icon,
                           color: AppConstants.primaryColor,
-                          size: 34,
+                          size: 36,
                         ),
                 ),
               ),
@@ -217,9 +217,10 @@ class _ServiceItem extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
               color: isLocked ? Colors.grey.shade400 : AppConstants.textDark,
+              letterSpacing: -0.2,
             ),
           ),
         ],
