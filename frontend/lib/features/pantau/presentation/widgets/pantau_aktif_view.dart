@@ -9,12 +9,14 @@ class PantauAktifView extends StatelessWidget {
   final int intervalMenit;
   final String? lokasiUser;
   final VoidCallback onHentikan;
+  final VoidCallback onDarurat;
 
   const PantauAktifView({
     super.key,
     required this.sisaDetik,
     required this.intervalMenit,
     required this.onHentikan,
+    required this.onDarurat,
     this.lokasiUser,
   });
 
@@ -78,6 +80,34 @@ class PantauAktifView extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     color: AppConstants.urgentColor,
                     letterSpacing: 1,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Tombol darurat — user bisa trigger kapan saja
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton.icon(
+                onPressed: onDarurat,
+                icon: const Icon(Icons.emergency_rounded, size: 20),
+                label: Text(
+                  'KIRIM SINYAL DARURAT',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppConstants.urgentColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
               ),
