@@ -13,8 +13,8 @@ void main() async {
 
 // Global scope registration for Android Service (flutter_overlay_window)
 @pragma("vm:entry-point")
-void overlayMainEntryPoint() {
-  overlayMain();
+void overlayMain() {
+  runOverlayMain();
 }
 
 class SigapApp extends StatelessWidget {
