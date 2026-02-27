@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
-import 'package:sigap_mobile/screens/auth_check_screen.dart';
+import 'package:sigap_mobile/features/app_shell/presentation/pages/auth_check_screen.dart';
 // Note: Nanti arahkan ke login screen yang sebenarnya jika sudah ada,
 // sementara kita arahkan ke AuthCheckScreen atau trigger callback login.
 

@@ -6,7 +6,7 @@ import 'package:sigap_mobile/features/account/presentation/widgets/menu_tile.dar
 import 'package:sigap_mobile/features/account/presentation/widgets/section_header.dart';
 import 'package:sigap_mobile/features/report_monitor/presentation/pages/report_monitor_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/about_page.dart';
-import 'package:sigap_mobile/screens/auth_check_screen.dart';
+import 'package:sigap_mobile/features/app_shell/presentation/pages/auth_check_screen.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/help_center_page.dart';
 import 'package:sigap_mobile/features/account/presentation/pages/guest_protected_page.dart';
 // IMPORT PENTING YANG HILANG KEMARIN:

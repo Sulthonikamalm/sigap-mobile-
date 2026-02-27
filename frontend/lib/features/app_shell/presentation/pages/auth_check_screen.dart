@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
-import 'package:sigap_mobile/screens/main_screen.dart';
+import 'package:sigap_mobile/features/app_shell/presentation/pages/main_screen.dart';
 
 class AuthCheckScreen extends StatelessWidget {
   const AuthCheckScreen({super.key});

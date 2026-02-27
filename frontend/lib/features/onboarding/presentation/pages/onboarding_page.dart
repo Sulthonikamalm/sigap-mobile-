@@ -4,7 +4,7 @@ import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/onboarding/data/onboarding_data.dart';
 import 'package:sigap_mobile/features/onboarding/presentation/widgets/onboarding_indikator.dart';
 import 'package:sigap_mobile/features/onboarding/presentation/widgets/onboarding_slide.dart';
-import 'package:sigap_mobile/screens/auth_check_screen.dart';
+import 'package:sigap_mobile/features/app_shell/presentation/pages/auth_check_screen.dart';
 
 /// Halaman onboarding — tampil pertama kali saat user membuka app.
 ///

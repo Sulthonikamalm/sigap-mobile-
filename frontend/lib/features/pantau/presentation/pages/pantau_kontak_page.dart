@@ -95,7 +95,7 @@ class PantauKontakPage extends StatelessWidget {
                 ),
                 GestureDetector(
                   onTap: () {
-                    // TODO: Tambah kontak baru
+                    _tampilkanDialogTambah(context);
                   },
                   child: Container(
                     padding:
@@ -204,6 +204,98 @@ class PantauKontakPage extends StatelessWidget {
             Icons.check_circle_rounded,
             color: AppConstants.successColor,
             size: 22,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _tampilkanDialogTambah(BuildContext context) {
+    final namaController = TextEditingController();
+    final nomorController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.all(24),
+        title: Text(
+          'Tambah Kontak Darurat',
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppConstants.textDark,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: namaController,
+              decoration: InputDecoration(
+                labelText: 'Nama Lengkap',
+                labelStyle: GoogleFonts.poppins(fontSize: 13),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: nomorController,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                labelText: 'Nomor HP',
+                labelStyle: GoogleFonts.poppins(fontSize: 13),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.poppins(
+                color: AppConstants.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Fitur simpan kontak akan tersedia setelah integrasi backend.',
+                    style: GoogleFonts.poppins(fontSize: 12),
+                  ),
+                  backgroundColor: AppConstants.primaryColor,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppConstants.primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: Text(
+              'Simpan',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
