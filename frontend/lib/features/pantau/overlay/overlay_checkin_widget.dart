@@ -23,6 +23,9 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
   Timer? _timer;
   bool _isStarted = false;
 
+  // Timestamp kapan check-in dimulai (dari main app)
+  DateTime? _waktuMulai;
+
   // Trauma-informed fade in
   double _opacity = 0.0;
 
@@ -39,19 +42,45 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
 
     // Tunggu instruksi jelas dari main app sebelum mulai countdown dan getar.
     // Ini mencegah getar acak jika Android tiba-tiba nge-restart Foreground Service ini.
+    // Format sinyal: 'START_OVERLAY_CHECKIN:epochMilliseconds'
     FlutterOverlayWindow.overlayListener.listen((event) {
-      if (event == 'START_OVERLAY_CHECKIN' && !_isStarted) {
+      if (event is String &&
+          event.startsWith('START_OVERLAY_CHECKIN') &&
+          !_isStarted) {
+        // Parse timestamp dari sinyal
+        // Kalau ada ':epochMs' di belakang, pakai itu untuk hitung sisa detik
+        _waktuMulai = DateTime.now(); // default: sekarang
+        final parts = event.split(':');
+        if (parts.length >= 2) {
+          final epochMs = int.tryParse(parts.last);
+          if (epochMs != null) {
+            _waktuMulai = DateTime.fromMillisecondsSinceEpoch(epochMs);
+          }
+        }
+
+        // Hitung sisa detik berdasarkan waktu nyata
+        final detikBerlalu = DateTime.now().difference(_waktuMulai!).inSeconds;
+        final sisaTerhitung =
+            (_durasiCheckin - detikBerlalu).clamp(0, _durasiCheckin);
+
         if (mounted) {
           setState(() {
             _isStarted = true;
+            _sisaDetik = sisaTerhitung;
           });
         }
-        _mulaiCountdown();
+
+        if (sisaTerhitung <= 0) {
+          _triggerTimeout();
+        } else {
+          _mulaiCountdown();
+        }
       }
     });
   }
 
   void _mulaiCountdown() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       setState(() {

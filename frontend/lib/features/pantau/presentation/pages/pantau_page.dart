@@ -13,6 +13,7 @@ import 'package:sigap_mobile/features/pantau/presentation/pages/trigger_sent_pag
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sigap_mobile/features/pantau/services/pantau_notification_service.dart';
+import 'package:sigap_mobile/features/pantau/presentation/pages/panduan_izin_page.dart';
 
 /// Halaman "Pantau Aku" — Orchestrator.
 ///
@@ -35,6 +36,10 @@ class _PantauPageState extends State<PantauPage>
   int _sisaDetik = 0;
   final List<int> _opsiInterval = [2, 5, 10, 15, 30, 45, 60];
 
+  // Timestamp kapan check-in diminta — dipakai untuk hitung sisa detik
+  // saat app kembali dari background (bukan mulai dari 90 detik mentah)
+  DateTime? _waktuMulaiCheckin;
+
   // ── Timer & Animasi ──
   Timer? _timerInterval;
   late AnimationController _pulseController;
@@ -44,6 +49,10 @@ class _PantauPageState extends State<PantauPage>
 
   // ── Input ──
   final TextEditingController _lokasiController = TextEditingController();
+
+  // Flag: panduan izin OEM sudah ditampilkan di sesi ini
+  // Agar tidak muncul berulang setiap kali tekan aktifkan
+  bool _sudahTampilPanduan = false;
   static const int _batasKarakter = 100;
 
   @override
@@ -80,7 +89,20 @@ class _PantauPageState extends State<PantauPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
-    // Saat app masuk terminal state (detached/swiped awaw)
+    // Saat app kembali ke foreground dan sedang dalam mode check-in,
+    // cek apakah waktu 90 detik sudah habis selama di background
+    if (state == AppLifecycleState.resumed &&
+        _state == 2 &&
+        _waktuMulaiCheckin != null) {
+      final selisihDetik =
+          DateTime.now().difference(_waktuMulaiCheckin!).inSeconds;
+      if (selisihDetik >= 90) {
+        // Timeout sudah lewat selama app di background
+        _prosesTimeoutCheckin();
+      }
+    }
+
+    // Saat app masuk terminal state (detached/swiped away)
     // paksa matikan overlay service dan hapus notifikasi persisten
     if (state == AppLifecycleState.detached) {
       try {
@@ -107,7 +129,20 @@ class _PantauPageState extends State<PantauPage>
     await [
       Permission.notification,
       Permission.systemAlertWindow,
+      Permission.ignoreBatteryOptimizations,
     ].request();
+
+    // Tampilkan panduan izin OEM sekali per sesi
+    // Ini penting agar MIUI/Samsung/OPPO tidak kill background service
+    if (!_sudahTampilPanduan && mounted) {
+      _sudahTampilPanduan = true;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PanduanIzinPage()),
+      );
+    }
+
+    if (!mounted) return;
 
     HapticFeedback.mediumImpact();
     setState(() {
@@ -151,6 +186,10 @@ class _PantauPageState extends State<PantauPage>
       Vibration.vibrate(duration: 500, amplitude: 255);
     } catch (_) {}
 
+    // Catat waktu mulai check-in — jadi acuan hitung sisa detik
+    // kalau app sempat ke background lalu dibuka lagi
+    _waktuMulaiCheckin = DateTime.now();
+
     // PantauCheckInView SELALU ditampilkan — ini PRIMARY
     // Bukan fallback, bukan opsional
     setState(() => _state = 2);
@@ -166,6 +205,10 @@ class _PantauPageState extends State<PantauPage>
           width: WindowSize.matchParent,
           alignment: OverlayAlignment.center,
           flag: OverlayFlag.defaultFlag,
+          // Title & content di notification foreground service
+          // Ini penting agar MIUI/Samsung tidak kill service
+          overlayTitle: 'Konfirmasi Keamanan Aktif',
+          overlayContent: 'Sigap sedang memantau keamanan Anda.',
         );
 
         // Cancel listener sebelumnya jika ada (cegah penumpukan)
@@ -181,15 +224,19 @@ class _PantauPageState extends State<PantauPage>
           }
         });
 
-        // Tembak sinyal START_OVERLAY_CHECKIN 6 kali selama 3 detik
-        // Ini memastikan overlay widget menerimanya meskipun engine Flutter untuk background isolate butuh 1-2 detik untuk siap/boot.
+        // Tembak sinyal START_OVERLAY_CHECKIN + timestamp 6 kali selama 3 detik
+        // Ini memastikan overlay widget menerimanya meskipun engine Flutter
+        // untuk background isolate butuh 1-2 detik untuk siap/boot.
+        // Format: 'START_OVERLAY_CHECKIN:epochMs' — overlay pakai ini
+        // untuk hitung sisa detik berdasarkan waktu nyata
+        final epochMs = _waktuMulaiCheckin!.millisecondsSinceEpoch;
         int attempts = 0;
         Timer.periodic(const Duration(milliseconds: 500), (t) {
           if (attempts >= 6) {
             t.cancel();
           } else {
             try {
-              FlutterOverlayWindow.shareData('START_OVERLAY_CHECKIN');
+              FlutterOverlayWindow.shareData('START_OVERLAY_CHECKIN:$epochMs');
             } catch (_) {}
             attempts++;
           }
@@ -309,8 +356,9 @@ class _PantauPageState extends State<PantauPage>
                 );
                 _hentikanPantauan();
               },
-              onTimeout: _prosesTimeoutCheckin, // BARU
-              timeoutDetik: 90, // BARU — 90 detik
+              onTimeout: _prosesTimeoutCheckin,
+              timeoutDetik: 90,
+              waktuMulaiCheckin: _waktuMulaiCheckin!, // timestamp acuan
             ),
           _ => const SizedBox.shrink(),
         },

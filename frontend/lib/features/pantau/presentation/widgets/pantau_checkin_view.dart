@@ -7,17 +7,23 @@ import 'package:vibration/vibration.dart';
 /// Tampilan saat check-in diminta — user harus konfirmasi "aman".
 /// Scroll-safe: menggunakan SingleChildScrollView, bukan Spacer.
 /// Ini adalah tampilan PRIMARY — bukan fallback.
+///
+/// Timer dihitung dari [waktuMulaiCheckin], BUKAN selalu mulai dari 90.
+/// Jadi kalau user buka notif 20 detik setelah check-in dipicu,
+/// timer langsung menunjukkan 70 detik (bukan 90).
 class PantauCheckInView extends StatefulWidget {
   final VoidCallback onKonfirmasiAman;
   final VoidCallback onDarurat;
   final VoidCallback onTimeout;
   final int timeoutDetik;
+  final DateTime waktuMulaiCheckin; // timestamp acuan hitung sisa detik
 
   const PantauCheckInView({
     super.key,
     required this.onKonfirmasiAman,
     required this.onDarurat,
     required this.onTimeout,
+    required this.waktuMulaiCheckin,
     this.timeoutDetik = 90,
   });
 
@@ -25,18 +31,61 @@ class PantauCheckInView extends StatefulWidget {
   State<PantauCheckInView> createState() => _PantauCheckInViewState();
 }
 
-class _PantauCheckInViewState extends State<PantauCheckInView> {
+class _PantauCheckInViewState extends State<PantauCheckInView>
+    with WidgetsBindingObserver {
   late int _sisaDetik;
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _sisaDetik = widget.timeoutDetik;
-    _mulaiTimerCheckin();
+    WidgetsBinding.instance.addObserver(this);
+
+    // Hitung sisa detik berdasarkan waktu nyata, bukan hardcode 90
+    // Kalau user buka notif 20 detik setelah trigger, _sisaDetik = 70
+    _hitungSisaDariTimestamp();
+
+    // Kalau sudah habis (user buka notif setelah 90+ detik), langsung timeout
+    if (_sisaDetik <= 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onTimeout();
+      });
+    } else {
+      _mulaiTimerCheckin();
+    }
+  }
+
+  /// Hitung sisa detik berdasarkan selisih waktu sekarang vs waktu mulai.
+  /// Ini memastikan timer akurat walau app sempat di-background.
+  void _hitungSisaDariTimestamp() {
+    final detikBerlalu =
+        DateTime.now().difference(widget.waktuMulaiCheckin).inSeconds;
+    _sisaDetik =
+        (widget.timeoutDetik - detikBerlalu).clamp(0, widget.timeoutDetik);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    // Saat app kembali dari background, koreksi sisa detik
+    // dengan waktu nyata (bukan timer Dart yang mungkin di-throttle OS)
+    if (state == AppLifecycleState.resumed) {
+      _timer?.cancel();
+      _hitungSisaDariTimestamp();
+
+      if (_sisaDetik <= 0) {
+        _handleVibrasiProgresif(0);
+        widget.onTimeout();
+      } else {
+        setState(() {});
+        _mulaiTimerCheckin();
+      }
+    }
   }
 
   void _mulaiTimerCheckin() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) return;
       setState(() {
@@ -103,6 +152,7 @@ class _PantauCheckInViewState extends State<PantauCheckInView> {
   @override
   void dispose() {
     _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 

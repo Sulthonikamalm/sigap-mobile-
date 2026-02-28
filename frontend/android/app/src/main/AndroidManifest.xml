@@ -1,11 +1,30 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Overlay di atas semua app (TikTok, WA, IG, Home Screen, dll) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+
+    <!-- Wajib agar overlay bisa bangunkan layar yang mati -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+
+    <!-- Agar app bisa restart setelah reboot HP -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+    <!-- Getar progresif untuk check-in -->
     <uses-permission android:name="android.permission.VIBRATE"/>
+
+    <!-- Foreground service: wajib agar overlay tetap hidup di background -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+
+    <!-- Izin kirim notifikasi (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- Wajib Android 14+: agar fullScreenIntent di notifikasi bisa
+         membangunkan layar dan menampilkan UI di lock screen -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
+
+    <!-- REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: agar bisa minta user
+         menonaktifkan battery optimization untuk app ini secara langsung -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
 
     <application
         android:label="Sigap"
@@ -19,7 +38,9 @@
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true">
             <!-- Specifies an Android theme to apply to this Activity as soon as
                  the Android process has started. This theme is visible to the user
                  while the Flutter UI initializes. After that, this theme continues
