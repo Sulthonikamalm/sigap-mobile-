@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/pantau/data/kontak_darurat_data.dart';
+import 'package:sigap_mobile/features/chat/presentation/pages/chat_welcome_page.dart';
+import 'package:sigap_mobile/features/lapor/presentation/pages/lapor_isu_page.dart';
+import 'package:sigap_mobile/features/lapor/data/datasources/report_remote_data_source.dart';
+import 'package:sigap_mobile/features/lapor/data/repositories/report_repository_impl.dart';
+import 'package:sigap_mobile/features/lapor/domain/usecases/submit_report_usecase.dart';
+import 'package:sigap_mobile/features/lapor/presentation/provider/lapor_isu_provider.dart';
 
-/// Layar Aman Pasca Trigger.
-/// Didesain menggunakan prinsip Trauma-Informed Care: tenang, memvalidasi, jelas.
+/// Layar Aman Pasca Trigger (Clean UI & Trauma-Informed UX).
+/// Fokus pada kejelasan, ketenangan (tanpa animasi berlebihan), dan hierarki visual tegas.
 class AmanPascaTriggerPage extends StatefulWidget {
   const AmanPascaTriggerPage({super.key});
 
@@ -14,31 +23,24 @@ class AmanPascaTriggerPage extends StatefulWidget {
 
 class _AmanPascaTriggerPageState extends State<AmanPascaTriggerPage>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  // Data dummy/hardcode
+  late final AnimationController _entranceController;
   final DateTime _waktuAman = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    // Durasi total animasi 900ms dengan stagger lambat
-    _controller = AnimationController(
+    // Animasi masuk yang sangat halus dan linear
+    _entranceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 600),
     );
-    _controller.forward();
+    _entranceController.forward();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _entranceController.dispose();
     super.dispose();
-  }
-
-  double _hitungPaddingH(double lebarLayar) {
-    if (lebarLayar <= 480) return 24.0;
-    return ((lebarLayar - 430) / 2).clamp(24.0, 120.0);
   }
 
   String _formatWaktu(DateTime dt) {
@@ -47,68 +49,80 @@ class _AmanPascaTriggerPageState extends State<AmanPascaTriggerPage>
     return "$jam:$menit WIB";
   }
 
+  void _navigasiKeChatbot() {
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const ChatWelcomePage(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
+  void _navigasiKeLaporIsu() {
+    final remoteDataSource = ReportRemoteDataSourceImpl(client: http.Client());
+    final repository = ReportRepositoryImpl(remoteDataSource: remoteDataSource);
+    final submitUseCase = SubmitReportUseCase(repository);
+
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return ChangeNotifierProvider(
+            create: (_) => LaporIsuProvider(submitUseCase: submitUseCase),
+            child: const LaporIsuPage(),
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final lebarLayar = MediaQuery.of(context).size.width;
-    final paddingH = _hitungPaddingH(lebarLayar);
-
     return PopScope(
-      canPop: false, // Memblokir hardware back dan swipe back
+      canPop: false,
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-          automaticallyImplyLeading: false, // TIDAK ADA tombol back
+          automaticallyImplyLeading: false,
           backgroundColor: Colors.white,
           elevation: 0,
           surfaceTintColor: Colors.transparent,
-          centerTitle: true,
-          title: Text(
-            'Kamu Aman',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppConstants.textDark,
-            ),
-          ),
+          systemOverlayStyle: Theme.of(context).appBarTheme.systemOverlayStyle,
         ),
         body: SafeArea(
           child: Column(
             children: [
               Expanded(
-                child: SingleChildScrollView(
+                child: CustomScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding:
-                      EdgeInsets.symmetric(horizontal: paddingH, vertical: 32),
-                  child: Column(
-                    children: [
-                      // Section 1: Hero Visual
-                      _bangunHeroVisual(),
-
-                      const SizedBox(height: 32),
-
-                      // Section 2: Konfirmasi Status
-                      _bangunKonfirmasiStatus(),
-
-                      const SizedBox(height: 16),
-
-                      // Section 3: Waktu Resolusi
-                      _bangunWaktuResolusi(),
-
-                      const SizedBox(height: 32),
-
-                      // Section 4: Validasi Psikologis
-                      _bangunValidasiPsikologis(),
-
-                      const SizedBox(height: 32),
-
-                      // Section 5: Aksi Lanjutan Opsional
-                      _bangunAksiLanjutan(),
-                    ],
-                  ),
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 8),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          _bangunHeroVisual(),
+                          const SizedBox(height: 32),
+                          _bangunKotakStatus(),
+                          const SizedBox(height: 24),
+                          _bangunPesanValidasi(),
+                          const SizedBox(height: 32),
+                          _bangunMenuLanjutan(),
+                          const SizedBox(height: 48), // Bottom padding spacing
+                        ]),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              // Tombol Utama (sticky bottom)
-              _bangunTombolUtama(paddingH),
+              _bangunSelesaiBottomBar(),
             ],
           ),
         ),
@@ -116,232 +130,166 @@ class _AmanPascaTriggerPageState extends State<AmanPascaTriggerPage>
     );
   }
 
+  // --- KOMPONEN UI ---
+
   Widget _bangunHeroVisual() {
-    // Icon hero scale elastic bounce (0ms -> end)
-    final heroScale = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.6, curve: Curves.elasticOut),
-      ),
-    );
-
-    // Teks Kamu Aman fade + slide up 10px (200ms -> end)
-    // 200ms = 200/900 = 0.222
-    final textFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.222, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    final textSlide =
-        Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.222, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    return Column(
-      children: [
-        ScaleTransition(
-          scale: heroScale,
-          child: Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
+    return FadeTransition(
+      opacity: CurvedAnimation(
+          parent: _entranceController,
+          curve: const Interval(0.0, 0.5, curve: Curves.easeOut)),
+      child: Column(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: AppConstants.successColor.withValues(alpha: 0.1),
+              color: Color(0xFFE6F4EA), // Soft Green
             ),
             child: const Icon(
-              Icons.check_circle_rounded,
-              size: 52,
-              color: AppConstants.successColor,
+              Icons.check_rounded,
+              size: 40,
+              color: Color(0xFF137333), // Solid darker green
             ),
           ),
-        ),
-        const SizedBox(height: 24),
-        FadeTransition(
-          opacity: textFade,
-          child: SlideTransition(
-            position: textSlide,
-            child: Column(
-              children: [
-                Text(
-                  'Kamu Aman',
-                  style: GoogleFonts.poppins(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: AppConstants.textDark,
-                    letterSpacing: -0.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Kontak daruratmu sudah diberi tahu',
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    color: AppConstants.textSecondary,
-                    height: 1.6,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _bangunKonfirmasiStatus() {
-    // Fade in (380ms -> end)
-    // 380/900 = 0.422
-    final fade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.422, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    return FadeTransition(
-      opacity: fade,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE8F5E9),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppConstants.successColor.withValues(alpha: 0.2),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.check_circle_rounded,
-                  size: 16,
-                  color: AppConstants.successColor,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Pesan aman terkirim ke:',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppConstants.successColor,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: daftarKontakDarurat.map((kontak) {
-                return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppConstants.successColor.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Text(
-                    kontak.nama,
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppConstants.textDark,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _bangunWaktuResolusi() {
-    // Fade in (480ms -> end)
-    // 480/900 = 0.533
-    final fade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.533, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    return FadeTransition(
-      opacity: fade,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.access_time_rounded,
-            size: 14,
-            color: AppConstants.textSecondary,
-          ),
-          const SizedBox(width: 6),
+          const SizedBox(height: 20),
           Text(
-            'Aman pada ${_formatWaktu(_waktuAman)}',
+            'Kondisi Aman',
             style: GoogleFonts.poppins(
-              fontSize: 12,
-              color: AppConstants.textSecondary,
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1E293B), // Slate 800
+              letterSpacing: -0.5,
             ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Tercatat pada ${_formatWaktu(_waktuAman)}',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF64748B), // Slate 500
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Widget _bangunValidasiPsikologis() {
-    // Fade + slide dari kiri (Offset -0.2, 0)
-    // 580ms -> end
-    // 580/900 = 0.644
-    final fade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.644, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    final slide =
-        Tween<Offset>(begin: const Offset(-0.2, 0), end: Offset.zero).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.644, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
+  Widget _bangunKotakStatus() {
     return FadeTransition(
-      opacity: fade,
+      opacity: CurvedAnimation(
+          parent: _entranceController,
+          curve: const Interval(0.2, 0.7, curve: Curves.easeOut)),
       child: SlideTransition(
-        position: slide,
+        position: Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+            .animate(CurvedAnimation(
+                parent: _entranceController,
+                curve: const Interval(0.2, 0.7, curve: Curves.easeOut))),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC), // Slate 50
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)), // Slate 200
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    size: 20,
+                    color: Color(0xFF334155), // Slate 700
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Sinyal darurat berhasil dikirim. Mereka telah mengetahui lokasimu.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: const Color(0xFF334155),
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(color: Color(0xFFE2E8F0), height: 1),
+              const SizedBox(height: 16),
+              Text(
+                'Terkirim ke:',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: daftarKontakDarurat.map((kontak) {
+                  return Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: const Color(0xFFCBD5E1)), // Slate 300
+                    ),
+                    child: Text(
+                      kontak.nama,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _bangunPesanValidasi() {
+    return FadeTransition(
+      opacity: CurvedAnimation(
+          parent: _entranceController,
+          curve: const Interval(0.4, 0.9, curve: Curves.easeOut)),
+      child: SlideTransition(
+        position: Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+            .animate(CurvedAnimation(
+                parent: _entranceController,
+                curve: const Interval(0.4, 0.9, curve: Curves.easeOut))),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF8F0),
+            color: const Color(0xFFFFFBEB), // Amber 50
             borderRadius: BorderRadius.circular(12),
             border: const Border(
-              left: BorderSide(color: Color(0xFFF59E0B), width: 3),
+              left: BorderSide(color: Color(0xFFF59E0B), width: 4), // Amber 500
             ),
           ),
           child: Text(
-            'Reaksimu tadi adalah hal yang normal. Itu bukan kelemahanmu.',
+            'Reaksimu tadi sangat valid. Mengaktifkan fitur ini berarti kamu memprioritaskan keselamatanmu, dan itu pilihan yang tepat.',
             style: GoogleFonts.poppins(
               fontSize: 13,
-              color: AppConstants.textDark,
-              height: 1.6,
+              color: const Color(0xFF92400E), // Amber 900
+              height: 1.5,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
@@ -349,183 +297,166 @@ class _AmanPascaTriggerPageState extends State<AmanPascaTriggerPage>
     );
   }
 
-  Widget _bangunAksiLanjutan() {
-    // Fade in bersamaan (700ms -> end)
-    // 700/900 = 0.777
-    final fade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.777, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
+  Widget _bangunMenuLanjutan() {
     return FadeTransition(
-      opacity: fade,
+      opacity: CurvedAnimation(
+          parent: _entranceController,
+          curve: const Interval(0.6, 1.0, curve: Curves.easeOut)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Langkah selanjutnya (opsional):',
+            'Langkah Selanjutnya (Opsional)',
             style: GoogleFonts.poppins(
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppConstants.textSecondary,
+              color: const Color(0xFF0F172A),
             ),
           ),
+          const SizedBox(height: 16),
+          _OpsiCard(
+            title: 'Ceritakan Padaku',
+            subtitle: 'Legakan pikiran dengan TemanKu AI tanpa dihakimi.',
+            icon: Icons.chat_bubble_outline_rounded,
+            accentColor: const Color(0xFF6366F1), // Indigo 500
+            onTap: _navigasiKeChatbot,
+          ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              // Card Ceritakan Padaku
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    // Placeholder
-                    Navigator.pop(context);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF5F5),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.edit_note_rounded,
-                          size: 24,
-                          color: Color(0xFFCC0000),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Ceritakan\nPadaku',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppConstants.textDark,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Tulis apa yang terjadi',
-                          style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            color: AppConstants.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Card Buat Laporan
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    // Placeholder
-                    Navigator.pop(context);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0F4FF),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.description_rounded,
-                          size: 24,
-                          color: Color(0xFF2563EB),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Buat\nLaporan',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppConstants.textDark,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Catat secara resmi',
-                          style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            color: AppConstants.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          _OpsiCard(
+            title: 'Buat Laporan',
+            subtitle: 'Catat detil kejadian jika merasa ada ancaman serius.',
+            icon: Icons.edit_note_rounded,
+            accentColor: const Color(0xFF2563EB), // Blue 600
+            onTap: _navigasiKeLaporIsu,
           ),
         ],
       ),
     );
   }
 
-  Widget _bangunTombolUtama(double paddingH) {
-    // Fade in (800ms -> end)
-    // 800/900 = 0.888
-    final fade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.888, 1.0, curve: Curves.easeOut),
+  Widget _bangunSelesaiBottomBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFF1F5F9))), // Slate 100
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: ElevatedButton(
+              onPressed: () {
+                // Selesaikan flow dan kembali ke Home (atau root screen)
+                Navigator.popUntil(context, (route) => route.isFirst);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppConstants.primaryColor,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Tutup Layar Ini',
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Sesi tercatat di Riwayat Layanan',
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: const Color(0xFF94A3B8), // Slate 400
+            ),
+          ),
+        ],
       ),
     );
+  }
+}
 
-    return FadeTransition(
-      opacity: fade,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(paddingH, 16, paddingH, 24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey.shade100)),
-        ),
-        child: Column(
-          children: [
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Kembali ke awalan, bersihkan semua routenya sehingga tdk ada bekas state
-                  Navigator.popUntil(context, (route) => route.isFirst);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      AppConstants.primaryColor.withValues(alpha: 0.85),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+/// Card flat dan clean untuk memandu UX yang jelas.
+class _OpsiCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  const _OpsiCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.accentColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        splashColor: accentColor.withValues(alpha: 0.1),
+        highlightColor: accentColor.withValues(alpha: 0.05),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)), // Slate 200
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(
-                  'Selesai',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
+                child: Icon(icon, color: accentColor, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: const Color(0xFF64748B),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Sesi ini tersimpan di Riwayat Pantauan',
-              style: GoogleFonts.poppins(
-                fontSize: 10,
-                color: AppConstants.textSecondary,
-                fontStyle: FontStyle.italic,
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFFCBD5E1),
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

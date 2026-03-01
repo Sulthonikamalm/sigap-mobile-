@@ -20,7 +20,7 @@ class _TriggerSentPageState extends State<TriggerSentPage>
   // Data hardcode/dummy sesuai instruksi
   final bool _adaKoneksiInternet = true;
   final String _lokasiTersegel =
-      "Ruang 401 Gedung Dosen lt.4, bimbingan Pak Hendra";
+      "Ruang 401 Gedung Dosen lt.4, bimbingan Pak pacung";
   final DateTime _waktuTrigger = DateTime.now();
 
   // State untuk proses pengiriman "Aku Aman"

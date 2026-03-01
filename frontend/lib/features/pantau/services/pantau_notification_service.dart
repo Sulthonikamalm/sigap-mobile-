@@ -38,7 +38,11 @@ class PantauNotificationService {
 
   // Tampilkan notifikasi urgent "Konfirmasi Diperlukan"
   // Muncul saat check-in dipicu, sebagai layer tambahan
-  static Future<void> tampilkanCheckinDiperlukan() async {
+  // Parameter [pesan] bisa di-custom per kesempatan (1, 2, atau final)
+  static Future<void> tampilkanCheckinDiperlukan({
+    String pesan = 'Tekan untuk konfirmasi. '
+        'Bantuan dikirim otomatis dalam 90 detik.',
+  }) async {
     const androidDetails = AndroidNotificationDetails(
       'pantau_checkin',
       'Konfirmasi Keamanan',
@@ -54,7 +58,7 @@ class PantauNotificationService {
     await _plugin.show(
       _idCheckin,
       'Apakah Anda Aman?',
-      'Tekan untuk konfirmasi. Bantuan dikirim otomatis dalam 90 detik.',
+      pesan,
       const NotificationDetails(android: androidDetails),
     );
   }
