@@ -195,52 +195,89 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
     super.dispose();
   }
 
+  bool _isProcessingInput = false;
+
   void _triggerAman() {
+    if (_isProcessingInput) return;
+    _isProcessingInput = true;
     _timer?.cancel();
     _backupTicker?.cancel();
 
-    // Kirim sinyal AMAN ke main app melalui IPC
-    // PENTING: closeOverlay() harus ditunda agar sinyal sempat di-deliver
-    // ke main app sebelum background process di-kill Android.
     try {
-      FlutterOverlayWindow.shareData('AMAN');
+      Vibration.vibrate(duration: 50, amplitude: 128);
     } catch (_) {}
 
-    // Kirim ulang sekali lagi setelah 100ms sebagai safety net
-    Future.delayed(const Duration(milliseconds: 100), () {
-      try {
-        FlutterOverlayWindow.shareData('AMAN');
-      } catch (_) {}
+    setState(() {
+      _sisaDetik = 999;
     });
 
-    // Tutup overlay setelah 500ms — memberi waktu cukup agar sinyal tersampaikan
-    Future.delayed(const Duration(milliseconds: 500), () {
-      try {
-        FlutterOverlayWindow.closeOverlay();
-      } catch (_) {}
+    // PENTING: Jangan langsung closeOverlay karena Isolate Flutter bisa di-kill Android
+    // sebelum IPC broadcast ditangkap main app.
+    // Solusi: Pompa pesan setiap 250ms selama 2.5 detik untuk menjamin delivery.
+    int attempts = 0;
+    Timer.periodic(const Duration(milliseconds: 250), (t) {
+      if (!mounted || attempts > 10) {
+        t.cancel();
+        try {
+          FlutterOverlayWindow.closeOverlay();
+        } catch (_) {}
+      } else {
+        try {
+          FlutterOverlayWindow.shareData('AMAN');
+        } catch (_) {}
+        attempts++;
+      }
+    });
+
+    // Sembunyikan UI dengan transisi
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) setState(() => _opacity = 0.0);
     });
   }
 
   void _triggerTimeout() {
+    if (_isProcessingInput) return;
+    _isProcessingInput = true;
     _timer?.cancel();
     _backupTicker?.cancel();
-    try {
-      FlutterOverlayWindow.shareData('TIMEOUT');
-    } catch (_) {}
-    Future.delayed(const Duration(milliseconds: 100), () {
-      try {
-        FlutterOverlayWindow.shareData('TIMEOUT');
-      } catch (_) {}
+
+    setState(() {
+      _sisaDetik = 0;
     });
-    Future.delayed(const Duration(milliseconds: 500), () {
-      try {
-        FlutterOverlayWindow.closeOverlay();
-      } catch (_) {}
+
+    int attempts = 0;
+    Timer.periodic(const Duration(milliseconds: 250), (t) {
+      if (!mounted || attempts > 10) {
+        t.cancel();
+        try {
+          FlutterOverlayWindow.closeOverlay();
+        } catch (_) {}
+      } else {
+        try {
+          FlutterOverlayWindow.shareData('TIMEOUT');
+        } catch (_) {}
+        attempts++;
+      }
+    });
+
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) setState(() => _opacity = 0.0);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isProcessingInput) {
+      return Material(
+        color: Colors.transparent,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 150),
+          opacity: _opacity,
+          child: const SizedBox.shrink(),
+        ),
+      );
+    }
+
     // Warna progresif: hijau > 15s, amber 6-15s, merah ≤5s
     Color progressColor;
     if (_sisaDetik <= 5) {
