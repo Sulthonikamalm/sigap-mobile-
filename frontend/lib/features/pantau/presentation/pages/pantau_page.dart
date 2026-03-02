@@ -386,22 +386,21 @@ class _PantauPageState extends State<PantauPage>
     HapticFeedback.mediumImpact();
     _overlaySignalTimer?.cancel();
 
-    // Ubah state ke 1 SEGERA — sebelum operasi async apapun.
-    // Ini menyebabkan PantauCheckInView langsung di-unmount dan
-    // menghentikan observer lifecycle-nya sebelum user sempat
-    // trigger resume dari OS.
+    // Tutup overlay SEGERA sebagai aksi pertama — fire-and-forget, tidak pakai await.
+    // Overlay sengaja tidak menutup dirinya sendiri (agar channel tetap hidup),
+    // jadi main app yang bertanggung jawab menutupnya di sini.
+    try {
+      FlutterOverlayWindow.closeOverlay();
+    } catch (_) {}
+
+    // setState SEGERA setelah close — unmount PantauCheckInView secepat mungkin
+    // agar observernya berhenti sebelum lifecycle resumed bisa memicunya.
     setState(() {
       _waktuMulaiPantauan = DateTime.now();
       _state = 1;
       _sisaDetik = _intervalDipilih * 60;
       _kesempatanCheckin = 0;
     });
-
-    // Operasi async setelah setState — urutan tidak kritis
-    try {
-      final isActive = await FlutterOverlayWindow.isActive();
-      if (isActive) await FlutterOverlayWindow.closeOverlay();
-    } catch (_) {}
 
     if (!mounted) {
       _amanSudahDikonfirmasi = false;

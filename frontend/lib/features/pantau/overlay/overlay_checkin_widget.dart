@@ -210,16 +210,15 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
       _sisaDetik = 999;
     });
 
-    // PENTING: Jangan langsung closeOverlay karena Isolate Flutter bisa di-kill Android
-    // sebelum IPC broadcast ditangkap main app.
-    // Solusi: Pompa pesan setiap 250ms selama 2.5 detik untuk menjamin delivery.
+    // Pompa AMAN 20x selama 5 detik — beri waktu lebih untuk main app merespons.
+    // JANGAN closeOverlay() di sini! Biarkan main app yang menutup.
+    // Jika overlay menutup dirinya sendiri, pesan AMAN yang masih antri
+    // di buffer platform channel akan ikut dibuang bersama engine overlay.
     int attempts = 0;
     Timer.periodic(const Duration(milliseconds: 250), (t) {
-      if (!mounted || attempts > 10) {
+      if (!mounted || attempts >= 20) {
         t.cancel();
-        try {
-          FlutterOverlayWindow.closeOverlay();
-        } catch (_) {}
+        // Jangan close di sini — main app akan close
       } else {
         try {
           FlutterOverlayWindow.shareData('AMAN');
@@ -228,7 +227,15 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
       }
     });
 
-    // Sembunyikan UI dengan transisi
+    // Fallback: jika main app tidak menutup overlay dalam 15 detik,
+    // tutup sendiri agar tidak stuck selamanya.
+    Future.delayed(const Duration(seconds: 15), () {
+      try {
+        FlutterOverlayWindow.closeOverlay();
+      } catch (_) {}
+    });
+
+    // Sembunyikan UI — overlay window tetap ada tapi invisible
     Future.delayed(const Duration(milliseconds: 150), () {
       if (mounted) setState(() => _opacity = 0.0);
     });
