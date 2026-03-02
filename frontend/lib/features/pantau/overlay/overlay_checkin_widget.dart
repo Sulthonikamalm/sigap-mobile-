@@ -33,6 +33,9 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
   // Fade in
   double _opacity = 0.0;
 
+  // Backup ticker 250ms — paksa repaint walau main timer di-throttle Android
+  Timer? _backupTicker;
+
   @override
   void initState() {
     super.initState();
@@ -68,10 +71,7 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
           }
         }
 
-        // Hitung sisa detik berdasarkan waktu nyata
-        final detikBerlalu = DateTime.now().difference(_waktuMulai!).inSeconds;
-        final sisaTerhitung =
-            (_durasiCheckin - detikBerlalu).clamp(0, _durasiCheckin);
+        final sisaTerhitung = _hitungSisaDetik();
 
         if (mounted) {
           setState(() {
@@ -94,31 +94,61 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
     });
   }
 
+  /// Hitung sisa detik berdasarkan waktu nyata — single source of truth
+  int _hitungSisaDetik() {
+    if (_waktuMulai == null) return _durasiCheckin;
+    final berlalu = DateTime.now().difference(_waktuMulai!).inSeconds;
+    return (_durasiCheckin - berlalu).clamp(0, _durasiCheckin);
+  }
+
   void _mulaiCountdown() {
     _timer?.cancel();
+    _backupTicker?.cancel();
+
+    // Timer utama: update setiap 1 detik
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
+      _refreshUI();
+    });
 
-      final detikBerlalu = DateTime.now().difference(_waktuMulai!).inSeconds;
-      final targetSisa =
-          (_durasiCheckin - detikBerlalu).clamp(0, _durasiCheckin);
-
-      if (targetSisa != _sisaDetik) {
-        setState(() {
-          _sisaDetik = targetSisa;
-        });
-
-        _handleGetaran(_sisaDetik);
-
-        if (_sisaDetik <= 0) {
-          timer.cancel();
+    // Backup ticker 250ms: paksa repaint jika main timer di-throttle Android
+    // Tidak melakukan logika apapun, hanya trigger setState
+    _backupTicker = Timer.periodic(const Duration(milliseconds: 250), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      // Hanya repaint — logika tetap di _refreshUI
+      final sisa = _hitungSisaDetik();
+      if (sisa != _sisaDetik && mounted) {
+        setState(() => _sisaDetik = sisa);
+        if (sisa <= 0) {
+          t.cancel();
+          _timer?.cancel();
           _triggerTimeout();
         }
       }
     });
+  }
+
+  /// Hitung dan update UI — dipanggil dari main timer
+  void _refreshUI() {
+    final sisa = _hitungSisaDetik();
+    // setState unconditional — pastikan UI selalu sinkron walau nilainya sama
+    if (mounted) {
+      setState(() => _sisaDetik = sisa);
+    }
+
+    _handleGetaran(sisa);
+
+    if (sisa <= 0) {
+      _timer?.cancel();
+      _backupTicker?.cancel();
+      _triggerTimeout();
+    }
   }
 
   void _handleGetaran(int detikSisa) {
@@ -148,6 +178,7 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
   @override
   void dispose() {
     _timer?.cancel();
+    _backupTicker?.cancel();
     super.dispose();
   }
 
