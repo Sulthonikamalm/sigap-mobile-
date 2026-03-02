@@ -54,12 +54,13 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
           !_isStarted) {
         _waktuMulai = DateTime.now();
         final parts = event.split(':');
+        int? epochMsParsed;
 
         // Parse epochMs (bagian kedua)
         if (parts.length >= 2) {
-          final epochMs = int.tryParse(parts[1]);
-          if (epochMs != null) {
-            _waktuMulai = DateTime.fromMillisecondsSinceEpoch(epochMs);
+          epochMsParsed = int.tryParse(parts[1]);
+          if (epochMsParsed != null) {
+            _waktuMulai = DateTime.fromMillisecondsSinceEpoch(epochMsParsed);
           }
         }
 
@@ -68,6 +69,18 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
           final durasi = int.tryParse(parts[2]);
           if (durasi != null && durasi > 0) {
             _durasiCheckin = durasi;
+          }
+        }
+
+        // ─── FRESHNESS CHECK ───
+        // Tolak sinyal basi dari round sebelumnya yang masih antri di IPC buffer.
+        // Jika epochMs sudah lebih dari (durasiDetik + 10 detik) yang lalu,
+        // sinyal ini pasti dari sesi lama. Abaikan sepenuhnya!
+        if (epochMsParsed != null) {
+          final ageSec =
+              (DateTime.now().millisecondsSinceEpoch - epochMsParsed) / 1000.0;
+          if (ageSec > _durasiCheckin + 10) {
+            return; // Sinyal basi — buang, jangan trigger timeout
           }
         }
 

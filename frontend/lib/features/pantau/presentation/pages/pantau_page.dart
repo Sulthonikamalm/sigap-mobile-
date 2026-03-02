@@ -64,6 +64,9 @@ class _PantauPageState extends State<PantauPage>
   // Pencegah race condition transisi antar fase
   bool _isProcessingPhase = false;
 
+  // One-shot flag: AMAN selalu menang atas timeout yang berjalan paralel
+  bool _amanSudahDikonfirmasi = false;
+
   // ── Timer & Animasi ──
   Timer? _timerInterval;
   late AnimationController _pulseController;
@@ -227,6 +230,9 @@ class _PantauPageState extends State<PantauPage>
       }
     } catch (_) {}
 
+    // Reset flag AMAN untuk round baru
+    _amanSudahDikonfirmasi = false;
+
     // Catat waktu mulai fase ini
     _waktuMulaiCheckin = DateTime.now();
     setState(() => _state = 2);
@@ -355,9 +361,12 @@ class _PantauPageState extends State<PantauPage>
   }
 
   void _konfirmasiAman() async {
-    // Tombol AMAN adalah satu-satunya mekanisme FULL reset, hancurkan semua state sisa
-    if (!mounted || _state != 2 || _isProcessingPhase) return;
-    _isProcessingPhase = true;
+    // AMAN harus selalu bisa diproses — tidak boleh diblokir _isProcessingPhase
+    // karena timeout paralel bisa menyebabkan AMAN diabaikan
+    if (!mounted || _state != 2) return;
+    if (_amanSudahDikonfirmasi) return; // Idempotent: sudah diproses, skip
+    _amanSudahDikonfirmasi = true;
+    _isProcessingPhase = true; // Blokir fase lain yang concurrently berjalan
 
     HapticFeedback.mediumImpact();
     _overlaySignalTimer?.cancel();
@@ -408,6 +417,7 @@ class _PantauPageState extends State<PantauPage>
       _waktuMulaiPantauan = null;
       _waktuMulaiCheckin = null;
       _isProcessingPhase = false;
+      _amanSudahDikonfirmasi = false;
       _state = 0;
       _sisaDetik = 0;
       _kesempatanCheckin = 0;
