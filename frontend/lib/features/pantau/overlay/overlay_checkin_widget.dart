@@ -184,20 +184,42 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
 
   void _triggerAman() {
     _timer?.cancel();
+    _backupTicker?.cancel();
+
+    // Kirim sinyal AMAN ke main app melalui IPC
+    // PENTING: closeOverlay() harus ditunda agar sinyal sempat di-deliver
+    // ke main app sebelum background process di-kill Android.
     try {
       FlutterOverlayWindow.shareData('AMAN');
     } catch (_) {}
-    try {
-      FlutterOverlayWindow.closeOverlay();
-    } catch (_) {}
+
+    // Kirim ulang sekali lagi setelah 100ms sebagai safety net
+    Future.delayed(const Duration(milliseconds: 100), () {
+      try {
+        FlutterOverlayWindow.shareData('AMAN');
+      } catch (_) {}
+    });
+
+    // Tutup overlay setelah 500ms — memberi waktu cukup agar sinyal tersampaikan
+    Future.delayed(const Duration(milliseconds: 500), () {
+      try {
+        FlutterOverlayWindow.closeOverlay();
+      } catch (_) {}
+    });
   }
 
   void _triggerTimeout() {
     _timer?.cancel();
+    _backupTicker?.cancel();
     try {
       FlutterOverlayWindow.shareData('TIMEOUT');
     } catch (_) {}
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      try {
+        FlutterOverlayWindow.shareData('TIMEOUT');
+      } catch (_) {}
+    });
+    Future.delayed(const Duration(milliseconds: 500), () {
       try {
         FlutterOverlayWindow.closeOverlay();
       } catch (_) {}
