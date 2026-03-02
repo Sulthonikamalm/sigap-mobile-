@@ -127,16 +127,15 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
       _refreshUI();
     });
 
-    // Backup ticker 250ms: paksa repaint jika main timer di-throttle Android
-    // Tidak melakukan logika apapun, hanya trigger setState
-    _backupTicker = Timer.periodic(const Duration(milliseconds: 250), (t) {
+    // Backup ticker 100ms: paksa repaint bahkan jika MIUI throttle 5x lipat
+    // (100ms * 5 = 500ms, masih cukup smooth untuk user)
+    _backupTicker = Timer.periodic(const Duration(milliseconds: 100), (t) {
       if (!mounted) {
         t.cancel();
         return;
       }
-      // Hanya repaint — logika tetap di _refreshUI
       final sisa = _hitungSisaDetik();
-      if (sisa != _sisaDetik && mounted) {
+      if (mounted && sisa != _sisaDetik) {
         setState(() => _sisaDetik = sisa);
         if (sisa <= 0) {
           t.cancel();

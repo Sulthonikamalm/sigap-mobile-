@@ -91,6 +91,16 @@ class _PantauPageState extends State<PantauPage>
       duration: const Duration(milliseconds: 2000),
     );
     _pulseController.repeat();
+
+    // Persistent listener — hidup sepanjang umur PantauPage.
+    // Tidak boleh di-cancel/recreate di _tampilkanOverlay.
+    _overlaySubscription = FlutterOverlayWindow.overlayListener.listen((data) {
+      if (data == 'AMAN') {
+        _konfirmasiAman();
+      } else if (data == 'TIMEOUT') {
+        _prosesKesempatanHabis();
+      }
+    });
   }
 
   @override
@@ -121,7 +131,7 @@ class _PantauPageState extends State<PantauPage>
     if (state == AppLifecycleState.resumed &&
         _state == 2 &&
         _waktuMulaiCheckin != null) {
-      Future.delayed(const Duration(milliseconds: 500), () {
+      Future.delayed(const Duration(milliseconds: 3500), () {
         // Setelah delay: cek apakah AMAN sudah dikonfirmasi oleh overlay
         if (!mounted || _state != 2 || _amanSudahDikonfirmasi) return;
 
@@ -286,16 +296,7 @@ class _PantauPageState extends State<PantauPage>
           overlayContent: 'Sigap sedang memantau keamanan Anda.',
         );
 
-        await _overlaySubscription?.cancel();
-
-        _overlaySubscription =
-            FlutterOverlayWindow.overlayListener.listen((data) {
-          if (data == 'AMAN') {
-            _konfirmasiAman();
-          } else if (data == 'TIMEOUT') {
-            _prosesKesempatanHabis();
-          }
-        });
+        // Listener sudah persistent di initState — tidak perlu cancel/recreate di sini.
 
         // Kirim sinyal START secara spartan untuk memastikan Background Isolate menangkap
         final epochMs = _waktuMulaiCheckin!.millisecondsSinceEpoch;
