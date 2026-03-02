@@ -51,8 +51,9 @@ class PantauNotificationService {
       priority: Priority.max,
       ongoing: false,
       autoCancel: true,
-      fullScreenIntent: true, // Muncul di lock screen juga
-      category: AndroidNotificationCategory.alarm,
+      // fullScreenIntent dihapus: dulu menyebabkan app langsung ke foreground
+      // saat notif dipanggil, sehingga lifecycle resumed menang atas AMAN dari overlay.
+      // Importance.max sudah cukup untuk memunculkan heads-up di layar.
       icon: '@mipmap/ic_launcher',
     );
     await _plugin.show(

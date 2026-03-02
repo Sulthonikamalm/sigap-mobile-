@@ -114,17 +114,24 @@ class _PantauPageState extends State<PantauPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
-    // Saat app kembali ke foreground dan sedang check-in,
-    // cek apakah waktu fase saat ini sudah habis selama di background
+    // Saat app kembali ke foreground dan sedang check-in:
+    // PENTING: Tunda 500ms agar platform channel events (sinyal AMAN dari overlay)
+    // yang masih di-antri sempat diproses lebih dulu oleh Dart event loop.
+    // Tanpa delay ini, timeout check bisa menang atas AMAN dari overlay.
     if (state == AppLifecycleState.resumed &&
         _state == 2 &&
         _waktuMulaiCheckin != null) {
-      final selisihDetik =
-          DateTime.now().difference(_waktuMulaiCheckin!).inSeconds;
-      final batasFase = _kesempatanCheckin >= 3 ? 90 : 30;
-      if (selisihDetik >= batasFase) {
-        _prosesKesempatanHabis();
-      }
+      Future.delayed(const Duration(milliseconds: 500), () {
+        // Setelah delay: cek apakah AMAN sudah dikonfirmasi oleh overlay
+        if (!mounted || _state != 2 || _amanSudahDikonfirmasi) return;
+
+        final selisihDetik =
+            DateTime.now().difference(_waktuMulaiCheckin!).inSeconds;
+        final batasFase = _kesempatanCheckin >= 3 ? 90 : 30;
+        if (selisihDetik >= batasFase) {
+          _prosesKesempatanHabis();
+        }
+      });
     }
 
     if (state == AppLifecycleState.detached) {
@@ -377,6 +384,8 @@ class _PantauPageState extends State<PantauPage>
     } catch (_) {}
 
     if (!mounted) {
+      // Reset flag agar round berikutnya tidak terblokir
+      _amanSudahDikonfirmasi = false;
       _isProcessingPhase = false;
       return;
     }
@@ -391,6 +400,7 @@ class _PantauPageState extends State<PantauPage>
     PantauNotificationService.tutupCheckin();
     PantauNotificationService.tampilkanPantauanAktif(_intervalDipilih);
     _isProcessingPhase = false;
+    // _amanSudahDikonfirmasi tetap true — direset oleh _mintaCheckIn() di round berikutnya
     _mulaiTimer();
 
     _tampilkanSnackbar(
