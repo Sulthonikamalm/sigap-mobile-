@@ -219,10 +219,16 @@ class _PantauPageState extends State<PantauPage>
       // Trigger di titik tengah interval
       final triggerDetik = totalDetik ~/ 2;
 
+      // Tambahkan buffer 5 detik: tidak trigger jika timer baru saja dimulai
+      // (mencegah false trigger akibat jitter timestamp atau Doze mode)
+      final detikSejakMulai =
+          DateTime.now().difference(_waktuMulaiPantauan!).inSeconds;
+
       // <= Mencegah missed ticks due to Doze (ketika waktu tiba-tiba melompat)
       if (_sisaDetik <= triggerDetik &&
           _kesempatanCheckin == 0 &&
-          !_isProcessingPhase) {
+          !_isProcessingPhase &&
+          detikSejakMulai >= 5) {
         timer.cancel();
         _timerInterval = null;
         _kesempatanCheckin = 1;
@@ -380,24 +386,28 @@ class _PantauPageState extends State<PantauPage>
     HapticFeedback.mediumImpact();
     _overlaySignalTimer?.cancel();
 
+    // Ubah state ke 1 SEGERA — sebelum operasi async apapun.
+    // Ini menyebabkan PantauCheckInView langsung di-unmount dan
+    // menghentikan observer lifecycle-nya sebelum user sempat
+    // trigger resume dari OS.
+    setState(() {
+      _waktuMulaiPantauan = DateTime.now();
+      _state = 1;
+      _sisaDetik = _intervalDipilih * 60;
+      _kesempatanCheckin = 0;
+    });
+
+    // Operasi async setelah setState — urutan tidak kritis
     try {
       final isActive = await FlutterOverlayWindow.isActive();
       if (isActive) await FlutterOverlayWindow.closeOverlay();
     } catch (_) {}
 
     if (!mounted) {
-      // Reset flag agar round berikutnya tidak terblokir
       _amanSudahDikonfirmasi = false;
       _isProcessingPhase = false;
       return;
     }
-
-    setState(() {
-      _waktuMulaiPantauan = DateTime.now(); // Reset sepenuhnya timer interval
-      _state = 1;
-      _sisaDetik = _intervalDipilih * 60;
-      _kesempatanCheckin = 0;
-    });
 
     PantauNotificationService.tutupCheckin();
     PantauNotificationService.tampilkanPantauanAktif(_intervalDipilih);

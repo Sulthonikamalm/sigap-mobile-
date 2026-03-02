@@ -68,12 +68,22 @@ class _PantauCheckInViewState extends State<PantauCheckInView>
     super.didChangeAppLifecycleState(state);
 
     if (state == AppLifecycleState.resumed) {
+      if (!mounted) return; // Guard 1: widget masih ada
+
       _timer?.cancel();
       _hitungSisaDariTimestamp();
 
       if (_sisaDetik <= 0) {
         _handleVibrasi(0);
-        widget.onTimeout();
+        // Tunda 1 detik sebelum timeout untuk memberi kesempatan
+        // _konfirmasiAman() menyelesaikan setState dan unmount widget ini.
+        // Jika widget ter-unmount dalam 1 detik, callback tidak akan dipanggil.
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            // Guard 2: cek ulang setelah delay
+            widget.onTimeout();
+          }
+        });
       } else {
         setState(() {});
         _mulaiTimerCheckin();
