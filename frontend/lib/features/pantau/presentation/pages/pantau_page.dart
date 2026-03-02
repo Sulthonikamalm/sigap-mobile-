@@ -95,6 +95,7 @@ class _PantauPageState extends State<PantauPage>
     // Persistent listener — hidup sepanjang umur PantauPage.
     // Tidak boleh di-cancel/recreate di _tampilkanOverlay.
     _overlaySubscription = FlutterOverlayWindow.overlayListener.listen((data) {
+      if (!mounted) return;
       if (data == 'AMAN') {
         _konfirmasiAman();
       } else if (data == 'TIMEOUT') {
@@ -411,7 +412,8 @@ class _PantauPageState extends State<PantauPage>
   void _hentikanPantauan() async {
     _timerInterval?.cancel();
     _overlaySignalTimer?.cancel();
-    _overlaySubscription?.cancel();
+    // JANGAN cancel _overlaySubscription di sini!
+    // Listener harus tetap hidup sepanjang umur widget (cancel hanya di dispose).
     PantauNotificationService.tutupSemua();
 
     try {
