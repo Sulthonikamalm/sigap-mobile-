@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:vibration/vibration.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/pantau/presentation/pages/pantau_kontak_page.dart';
@@ -12,26 +11,10 @@ import 'package:sigap_mobile/features/pantau/presentation/widgets/pantau_checkin
 import 'package:sigap_mobile/features/pantau/presentation/pages/trigger_sent_page.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:sigap_mobile/features/pantau/services/pantau_notification_service.dart';
 import 'package:sigap_mobile/features/pantau/services/pantau_aman_flag.dart';
 import 'package:sigap_mobile/features/pantau/presentation/pages/panduan_izin_page.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 
-/// Halaman "Pantau Aku" — Orchestrator.
-///
-/// State: 0=persiapan, 1=aktif, 2=check-in diminta
-///
-/// LOGIKA CHECK-IN:
-///   ┌─ Timer berjalan selama T menit
-///   ├─ Di titik tengah (T/2): overlay muncul
-///   │   ├─ Kesempatan 1: 30 dtk (getar di awal + continuous di ≤5dtk)
-///   │   ├─ Kesempatan 2: 30 dtk (hanya jika T ≥ 5 menit)
-///   │   └─ Jika T < 5 menit: hanya 1 kesempatan overlay
-///   ├─ Semua kesempatan habis tanpa respons:
-///   │   └─ Final countdown: 90 dtk (getaran agresif, PantauCheckInView)
-///   └─ Final habis tanpa respons → DARURAT dikirim
-///
-///   Total maks (T≥5): 30 + 30 + 90 = 150 dtk
-///   Total maks (T<5): 30 + 90 = 120 dtk
 class PantauPage extends StatefulWidget {
   const PantauPage({super.key});
 
@@ -42,149 +25,112 @@ class PantauPage extends StatefulWidget {
 class _PantauPageState extends State<PantauPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   // ── State ──
-  int _state = 0;
+  int _state = 0; // 0=persiapan, 1=aktif, 2=check-in diminta
   int _intervalDipilih = 45;
   int _sisaDetik = 0;
   final List<int> _opsiInterval = [2, 5, 10, 15, 30, 45, 60];
 
-  // ── Check-in state ──
-  // 0 = belum check-in
-  // 1 = kesempatan overlay 1 aktif (30 dtk)
-  // 2 = kesempatan overlay 2 aktif (30 dtk)
-  // 3 = final countdown aktif (90 dtk)
   int _kesempatanCheckin = 0;
-
-  /// Jumlah maksimal kesempatan overlay sebelum final countdown.
-  /// Interval ≥ 5 menit → 2 kesempatan. Interval < 5 menit → 1 kesempatan.
-  int get _maksKesempatanOverlay => _intervalDipilih >= 5 ? 2 : 1;
-
-  // Timestamp kapan fase check-in dimulai
   DateTime? _waktuMulaiCheckin;
-  DateTime? _waktuMulaiPantauan; // Timestamp saat pantauan diaktifkan (state 1)
 
-  // Pencegah race condition transisi antar fase
-  bool _isProcessingPhase = false;
-
-  // One-shot flag: AMAN selalu menang atas timeout yang berjalan paralel
-  bool _amanSudahDikonfirmasi = false;
-
-  // ── Timer & Animasi ──
-  Timer? _timerInterval;
   late AnimationController _pulseController;
-
-  // ── Overlay ──
-  StreamSubscription? _overlaySubscription;
-  Timer? _overlaySignalTimer;
-
-  // ── Input ──
   final TextEditingController _lokasiController = TextEditingController();
 
   bool _sudahTampilPanduan = false;
   static const int _batasKarakter = 100;
 
+  StreamSubscription? _overlaySubscription;
+  StreamSubscription? _tickSubscription;
+  StreamSubscription? _amanSubscription;
+  StreamSubscription? _daruratSubscription;
+
   @override
   void initState() {
     super.initState();
-    PantauNotificationService.init();
     WidgetsBinding.instance.addObserver(this);
+
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     );
     _pulseController.repeat();
 
-    // Persistent listener — hidup sepanjang umur PantauPage.
-    // Tidak boleh di-cancel/recreate di _tampilkanOverlay.
+    _listenToBackgroundService();
+
+    // Listener overlay (Jaga-jaga jika tombol ditapped dari overlay & dikirim via IPC)
     _overlaySubscription = FlutterOverlayWindow.overlayListener.listen((data) {
       if (!mounted) return;
-      if (data == 'AMAN') {
-        _konfirmasiAman();
-      } else if (data == 'TIMEOUT') {
-        _prosesKesempatanHabis();
+      if (data == 'AMAN' || data == 'AMAN_CONFIRMED') {
+        _handleAmanDariOverlay();
       }
+    });
+
+    _cekStatusServiceAktif();
+  }
+
+  void _cekStatusServiceAktif() async {
+    final service = FlutterBackgroundService();
+    final isRunning = await service.isRunning();
+    if (isRunning) {
+      // Jika nyala, biarkan tick pertama mengatur UI
+    }
+  }
+
+  void _listenToBackgroundService() {
+    final service = FlutterBackgroundService();
+
+    _tickSubscription = service.on('tick').listen((event) {
+      if (event == null || !mounted) return;
+
+      final int newState = event['state'];
+      final int newSisa = event['seconds'];
+      final int newKesempatan = event['kesempatan'] ?? 0;
+
+      // Jika berpindah ke fase check-in baru (mencatat waktu mundur visual check-in)
+      if (newState == 2 && _state != 2) {
+        _waktuMulaiCheckin = DateTime.now();
+      }
+
+      setState(() {
+        _state = newState;
+        _sisaDetik = newSisa;
+        _kesempatanCheckin = newKesempatan;
+      });
+    });
+
+    _amanSubscription = service.on('status_aman_dikonfirmasi').listen((event) {
+      if (!mounted) return;
+      _handleAmanDariOverlay();
+    });
+
+    _daruratSubscription = service.on('darurat_triggered').listen((event) {
+      if (!mounted) return;
+      _prosesTimeoutCheckin();
     });
   }
 
   @override
   void dispose() {
-    _timerInterval?.cancel();
-    _overlaySignalTimer?.cancel();
     _overlaySubscription?.cancel();
+    _tickSubscription?.cancel();
+    _amanSubscription?.cancel();
+    _daruratSubscription?.cancel();
     _pulseController.dispose();
     _lokasiController.dispose();
     WidgetsBinding.instance.removeObserver(this);
-    PantauNotificationService.tutupSemua();
-
-    try {
-      FlutterOverlayWindow.closeOverlay();
-    } catch (_) {}
-
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-
-    // Saat app kembali ke foreground dan sedang check-in:
-    if (state == AppLifecycleState.resumed &&
-        _state == 2 &&
-        _waktuMulaiCheckin != null) {
-      // ── SUMBER KEBENARAN UTAMA: Cek flag file (SYNCHRONOUS) ──
-      // File flag ditulis oleh overlay saat user tekan AMAN.
-      // Cek ini SYNCHRONOUS dan DETERMINISTIC — tidak tergantung IPC,
-      // tidak race condition, tidak bisa hilang.
-      if (PantauAmanFlag.adaSync()) {
-        PantauAmanFlag.hapus();
-        _konfirmasiAman();
-        return; // Selesai — tidak perlu cek apapun lagi
+    if (state == AppLifecycleState.resumed) {
+      // Flag diperiksa di UI juga agar seketika ter-update (tidak tunggu tick 1 detik)
+      if (_state == 2 && PantauAmanFlag.adaSync()) {
+        _handleAmanDariOverlay();
       }
-
-      // ── Layer 2: Tanya overlay via IPC (jaga-jaga flag gagal tulis) ──
-      if (_kesempatanCheckin <= 2) {
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (!mounted || _state != 2 || _amanSudahDikonfirmasi) return;
-          // Cek flag lagi — mungkin baru ditulis oleh overlay
-          if (PantauAmanFlag.adaSync()) {
-            PantauAmanFlag.hapus();
-            _konfirmasiAman();
-            return;
-          }
-          try {
-            FlutterOverlayWindow.shareData('STATUS_QUERY');
-          } catch (_) {}
-        });
-      }
-
-      // ── Layer 3: Fallback timeout check ──
-      Future.delayed(const Duration(milliseconds: 3500), () {
-        if (!mounted || _state != 2 || _amanSudahDikonfirmasi) return;
-        // Cek flag terakhir kali sebelum eskalasi
-        if (PantauAmanFlag.adaSync()) {
-          PantauAmanFlag.hapus();
-          _konfirmasiAman();
-          return;
-        }
-        final selisihDetik =
-            DateTime.now().difference(_waktuMulaiCheckin!).inSeconds;
-        final batasFase = _kesempatanCheckin >= 3 ? 90 : 30;
-        if (selisihDetik >= batasFase) {
-          _prosesKesempatanHabis();
-        }
-      });
-    }
-
-    if (state == AppLifecycleState.detached) {
-      try {
-        PantauNotificationService.tutupSemua();
-        FlutterOverlayWindow.closeOverlay();
-      } catch (_) {}
     }
   }
-
-  // ═══════════════════════════════════
-  // AKSI
-  // ═══════════════════════════════════
 
   Future<void> _mintaPermisiOverlay() async {
     final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
@@ -212,203 +158,75 @@ class _PantauPageState extends State<PantauPage>
     if (!mounted) return;
 
     HapticFeedback.mediumImpact();
+
+    final service = FlutterBackgroundService();
+    bool isRunning = await service.isRunning();
+    if (!isRunning) {
+      await service.startService();
+      // JEDA KRUSIAL: Beri waktu background isolate (engine) untuk spin-up
+      // sebelum kita tembak instruksi 'start_timer'
+      await Future.delayed(const Duration(milliseconds: 1000));
+    }
+
+    // Kirim perintah start timer ke background service
+    service.invoke('start_timer', {
+      'duration': _intervalDipilih * 60,
+    });
+
     setState(() {
-      _waktuMulaiPantauan = DateTime.now();
-      _waktuMulaiCheckin = null;
-      _isProcessingPhase = false;
       _state = 1;
       _sisaDetik = _intervalDipilih * 60;
       _kesempatanCheckin = 0;
     });
-    PantauNotificationService.tampilkanPantauanAktif(_intervalDipilih);
-    _mulaiTimer();
   }
 
-  /// Timer utama: berjalan selama interval, trigger check-in di titik tengah.
-  /// Memakai patokan waktu nyata untuk kebal terhadap OS Doze Mode.
-  void _mulaiTimer() {
-    _timerInterval?.cancel();
-    _kesempatanCheckin = 0;
-    final int totalDetik = _intervalDipilih * 60;
-
-    _timerInterval = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
-      final detikBerlalu =
-          DateTime.now().difference(_waktuMulaiPantauan!).inSeconds;
-      final targetSisa = totalDetik - detikBerlalu;
-
-      setState(() {
-        _sisaDetik = targetSisa.clamp(0, totalDetik);
-      });
-
-      // Trigger di titik tengah interval
-      final triggerDetik = totalDetik ~/ 2;
-
-      // Tambahkan buffer 5 detik: tidak trigger jika timer baru saja dimulai
-      // (mencegah false trigger akibat jitter timestamp atau Doze mode)
-      final detikSejakMulai =
-          DateTime.now().difference(_waktuMulaiPantauan!).inSeconds;
-
-      // <= Mencegah missed ticks due to Doze (ketika waktu tiba-tiba melompat)
-      if (_sisaDetik <= triggerDetik &&
-          _kesempatanCheckin == 0 &&
-          !_isProcessingPhase &&
-          detikSejakMulai >= 5) {
-        timer.cancel();
-        _timerInterval = null;
-        _kesempatanCheckin = 1;
-        _mintaCheckIn(kesempatan: 1);
-      }
-    });
-  }
-
-  /// Mulai fase check-in. Dipanggil untuk setiap kesempatan (1, 2) dan final (3).
-  void _mintaCheckIn({required int kesempatan}) async {
-    _timerInterval?.cancel();
-    _timerInterval = null;
-
-    HapticFeedback.heavyImpact();
-    // Intensitas getar berbeda per kesempatan
-    try {
-      if (kesempatan <= 1) {
-        Vibration.vibrate(duration: 400, amplitude: 180);
-      } else if (kesempatan == 2) {
-        Vibration.vibrate(duration: 600, amplitude: 220);
-      } else {
-        Vibration.vibrate(duration: 800, amplitude: 255);
-      }
-    } catch (_) {}
-
-    // Reset flag AMAN untuk round baru
-    _amanSudahDikonfirmasi = false;
-
-    // Hapus flag file dari round sebelumnya agar tidak bocor ke fase ini
+  void _handleAmanDariOverlay() {
+    FlutterBackgroundService().invoke('reset_timer');
     PantauAmanFlag.hapus();
 
-    // Catat waktu mulai fase ini
-    _waktuMulaiCheckin = DateTime.now();
-    setState(() => _state = 2);
-
-    // Notifikasi sesuai fase
-    if (kesempatan <= 1) {
-      PantauNotificationService.tampilkanCheckinDiperlukan(
-        pesan: 'Konfirmasi keamanan diperlukan. Ketuk untuk merespons.',
-      );
-    } else if (kesempatan == 2) {
-      PantauNotificationService.tampilkanCheckinDiperlukan(
-        pesan: 'PERINGATAN: Tidak ada respons. '
-            'Masih ada waktu 30 detik untuk konfirmasi.',
-      );
-    } else {
-      PantauNotificationService.tampilkanCheckinDiperlukan(
-        pesan: 'DARURAT: Bantuan akan dikirim otomatis dalam 90 detik. '
-            'Ketuk SAYA AMAN untuk membatalkan.',
-      );
-    }
-
-    // Overlay hanya untuk fase 1 & 2 (bukan final countdown)
-    if (kesempatan <= 2) {
-      await _tampilkanOverlay(durasiDetik: 30);
-    }
-  }
-
-  /// Tampilkan overlay sebagai best-effort tambahan.
-  Future<void> _tampilkanOverlay({required int durasiDetik}) async {
+    HapticFeedback.mediumImpact();
     try {
-      final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
-      if (hasPermission) {
-        // Pastikan overlay sebelumnya benar-benar tertutup.
-        // Tanpa ini, showOverlay() gagal diam-diam karena service masih aktif.
-        try {
-          final masihAktif = await FlutterOverlayWindow.isActive();
-          if (masihAktif) {
-            await FlutterOverlayWindow.closeOverlay();
-            // Beri waktu Android menghentikan service sepenuhnya
-            await Future.delayed(const Duration(milliseconds: 800));
-          }
-        } catch (_) {}
+      FlutterOverlayWindow.closeOverlay();
+    } catch (_) {}
 
-        if (!mounted) return;
-
-        // flutter_overlay_window membutuhkan physical pixels (bukan logical dp)
-        // Hitung kepadatan layar agar tinggi window konsisten ~240dp di semua HP
-        final dpr = MediaQuery.of(context).devicePixelRatio;
-        final physicalHeight = (240 * dpr).toInt();
-
-        await FlutterOverlayWindow.showOverlay(
-          height: physicalHeight,
-          width: WindowSize.matchParent,
-          alignment: OverlayAlignment.bottomCenter,
-          flag: OverlayFlag.defaultFlag,
-          overlayTitle: 'Konfirmasi Keamanan Aktif',
-          overlayContent: 'Sigap sedang memantau keamanan Anda.',
-        );
-
-        // Listener sudah persistent di initState — tidak perlu cancel/recreate di sini.
-
-        // Kirim sinyal START secara spartan untuk memastikan Background Isolate menangkap
-        final epochMs = _waktuMulaiCheckin!.millisecondsSinceEpoch;
-        int attempts = 0;
-        _overlaySignalTimer?.cancel();
-        // 10 attempts x 800ms = 8 detik jendela pengiriman, sangat aman
-        _overlaySignalTimer =
-            Timer.periodic(const Duration(milliseconds: 800), (t) {
-          if (attempts >= 10 || !mounted) {
-            t.cancel();
-          } else {
-            try {
-              FlutterOverlayWindow.shareData(
-                  'START_OVERLAY_CHECKIN:$epochMs:$durasiDetik');
-            } catch (_) {}
-            attempts++;
-          }
-        });
-      }
-    } catch (_) {
-      // PantauCheckInView sudah tampil sebagai primary
+    if (mounted) {
+      setState(() {
+        _state = 1;
+        _kesempatanCheckin = 0;
+        _sisaDetik = _intervalDipilih * 60;
+      });
+      _tampilkanSnackbar(
+          'Aman. Pantauan dilanjutkan.', AppConstants.successColor);
     }
   }
 
-  /// Dipanggil saat timeout di PantauCheckInView atau overlay.
-  /// Mengelola eskalasi secara deterministik, hanya dieksekusi 1 kali per fase.
-  void _prosesKesempatanHabis() async {
-    if (!mounted || _state != 2 || _isProcessingPhase) return;
-    _isProcessingPhase = true;
+  // Dipanggil UI (PantauCheckInView)
+  void _konfirmasiAmanLokal() {
+    PantauAmanFlag.tulis(); // Pastikan flag ditulis agar service juga baca
+    _handleAmanDariOverlay();
+  }
 
-    _overlaySignalTimer?.cancel();
+  void _hentikanPantauan() async {
+    FlutterBackgroundService().invoke('stop_service');
+    PantauAmanFlag.hapus();
 
-    // Tutup overlay dulu jika ada — beri waktu 500ms agar benar-benar close
     try {
       final isActive = await FlutterOverlayWindow.isActive();
       if (isActive) {
         await FlutterOverlayWindow.closeOverlay();
-        await Future.delayed(const Duration(milliseconds: 500));
       }
     } catch (_) {}
 
-    if (!mounted || _state != 2) {
-      _isProcessingPhase = false;
-      return;
-    }
+    if (!mounted) return;
 
-    if (_kesempatanCheckin < _maksKesempatanOverlay) {
-      _kesempatanCheckin++;
-      _isProcessingPhase = false;
-      _mintaCheckIn(kesempatan: _kesempatanCheckin);
-    } else if (_kesempatanCheckin == _maksKesempatanOverlay) {
-      _kesempatanCheckin = 3;
-      _isProcessingPhase = false;
-      _mintaCheckIn(kesempatan: 3);
-    } else {
-      // Final countdown habis → DARURAT
-      _isProcessingPhase =
-          false; // Buka kunci karena app pindah ke layar terminal
-      _prosesTimeoutCheckin();
-    }
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _state = 0;
+      _sisaDetik = 0;
+      _kesempatanCheckin = 0;
+      _waktuMulaiCheckin = null;
+    });
+    _tampilkanSnackbar('Pantauan dihentikan', const Color(0xFF333333));
   }
 
   void _prosesTimeoutCheckin() {
@@ -418,82 +236,6 @@ class _PantauPageState extends State<PantauPage>
       MaterialPageRoute(builder: (context) => const TriggerSentPage()),
     );
     _hentikanPantauan();
-  }
-
-  void _konfirmasiAman() async {
-    // AMAN harus selalu bisa diproses — tidak boleh diblokir _isProcessingPhase
-    // karena timeout paralel bisa menyebabkan AMAN diabaikan
-    if (!mounted || _state != 2) return;
-    if (_amanSudahDikonfirmasi) return; // Idempotent: sudah diproses, skip
-    _amanSudahDikonfirmasi = true;
-    _isProcessingPhase = true; // Blokir fase lain yang concurrently berjalan
-
-    HapticFeedback.mediumImpact();
-    _overlaySignalTimer?.cancel();
-
-    // Tutup overlay SEGERA sebagai aksi pertama — fire-and-forget, tidak pakai await.
-    // Overlay sengaja tidak menutup dirinya sendiri (agar channel tetap hidup),
-    // jadi main app yang bertanggung jawab menutupnya di sini.
-    try {
-      FlutterOverlayWindow.closeOverlay();
-    } catch (_) {}
-
-    // Hapus flag file — sudah diproses, tidak boleh terbaca lagi
-    PantauAmanFlag.hapus();
-
-    // setState SEGERA setelah close — unmount PantauCheckInView secepat mungkin
-    // agar observernya berhenti sebelum lifecycle resumed bisa memicunya.
-    setState(() {
-      _waktuMulaiPantauan = DateTime.now();
-      _state = 1;
-      _sisaDetik = _intervalDipilih * 60;
-      _kesempatanCheckin = 0;
-    });
-
-    if (!mounted) {
-      _amanSudahDikonfirmasi = false;
-      _isProcessingPhase = false;
-      return;
-    }
-
-    PantauNotificationService.tutupCheckin();
-    PantauNotificationService.tampilkanPantauanAktif(_intervalDipilih);
-    _isProcessingPhase = false;
-    // _amanSudahDikonfirmasi tetap true — direset oleh _mintaCheckIn() di round berikutnya
-    _mulaiTimer();
-
-    _tampilkanSnackbar(
-        'Aman. Pantauan dilanjutkan.', AppConstants.successColor);
-  }
-
-  void _hentikanPantauan() async {
-    _timerInterval?.cancel();
-    _overlaySignalTimer?.cancel();
-    // JANGAN cancel _overlaySubscription di sini!
-    // Listener harus tetap hidup sepanjang umur widget (cancel hanya di dispose).
-    PantauNotificationService.tutupSemua();
-
-    try {
-      final isActive = await FlutterOverlayWindow.isActive();
-      if (isActive) {
-        await FlutterOverlayWindow.closeOverlay();
-      }
-    } catch (_) {}
-
-    if (!mounted) return;
-
-    HapticFeedback.mediumImpact();
-    setState(() {
-      _waktuMulaiPantauan = null;
-      _waktuMulaiCheckin = null;
-      _isProcessingPhase = false;
-      _amanSudahDikonfirmasi = false;
-      _state = 0;
-      _sisaDetik = 0;
-      _kesempatanCheckin = 0;
-    });
-    PantauAmanFlag.hapus(); // Bersihkan flag saat pantauan dihentikan
-    _tampilkanSnackbar('Pantauan dihentikan', const Color(0xFF333333));
   }
 
   void _tampilkanSnackbar(String pesan, Color warna) {
@@ -510,10 +252,6 @@ class _PantauPageState extends State<PantauPage>
       ),
     );
   }
-
-  // ═══════════════════════════════════
-  // BUILD
-  // ═══════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
@@ -539,11 +277,9 @@ class _PantauPageState extends State<PantauPage>
               },
             ),
           2 => PantauCheckInView(
-              // Key unik per kesempatan agar Flutter re-create widget
-              // dari awal (initState dipanggil ulang, timer di-reset)
               key: ValueKey(
                   'checkin_${_kesempatanCheckin}_${_waktuMulaiCheckin?.millisecondsSinceEpoch}'),
-              onKonfirmasiAman: _konfirmasiAman,
+              onKonfirmasiAman: _konfirmasiAmanLokal,
               onDarurat: () async {
                 await Navigator.push(
                   context,
@@ -553,7 +289,10 @@ class _PantauPageState extends State<PantauPage>
                 );
                 _hentikanPantauan();
               },
-              onTimeout: _prosesKesempatanHabis,
+              onTimeout: () {
+                // UI tidak paksa timeout eskalasi, biarkan service yang pindah state
+                // Namun, kita sediakan ini agar interface tidak error
+              },
               kesempatan: _kesempatanCheckin,
               timeoutDetik: _kesempatanCheckin >= 3 ? 90 : 30,
               waktuMulaiCheckin: _waktuMulaiCheckin ?? DateTime.now(),
@@ -630,7 +369,14 @@ class _PantauPageState extends State<PantauPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _label('Pilih Interval Waktu'),
+                    Text(
+                      'Pilih Interval Waktu',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     IntervalPicker(
                       intervalDipilih: _intervalDipilih,
@@ -638,7 +384,14 @@ class _PantauPageState extends State<PantauPage>
                       onPilih: (v) => setState(() => _intervalDipilih = v),
                     ),
                     const SizedBox(height: 28),
-                    _label('Detail Lokasi / Situasi'),
+                    Text(
+                      'Detail Lokasi / Situasi',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     _bangunTextareaLokasi(),
                   ],
@@ -654,17 +407,6 @@ class _PantauPageState extends State<PantauPage>
           child: _bangunBottomBar(paddingH),
         ),
       ],
-    );
-  }
-
-  Widget _label(String teks) {
-    return Text(
-      teks,
-      style: GoogleFonts.poppins(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: Colors.grey.shade700,
-      ),
     );
   }
 

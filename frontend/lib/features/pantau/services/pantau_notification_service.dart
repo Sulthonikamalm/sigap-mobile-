@@ -1,77 +1,189 @@
+import 'dart:async';
+import 'dart:ui';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:sigap_mobile/features/pantau/services/pantau_aman_flag.dart';
 
 class PantauNotificationService {
-  static final FlutterLocalNotificationsPlugin _plugin =
-      FlutterLocalNotificationsPlugin();
+  static const String notificationChannelId = 'pantau_aman_channel';
+  static const int notificationId = 888;
 
-  static const int _idAktif = 1001;
-  static const int _idCheckin = 1002;
+  static Future<void> initializeService() async {
+    final service = FlutterBackgroundService();
 
-  static Future<void> init() async {
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    await _plugin.initialize(
-      const InitializationSettings(android: android),
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      notificationChannelId,
+      'Pantau Aman Service',
+      description: 'Menjalankan layanan pemantauan keamanan di background',
+      importance: Importance.high,
+    );
+
+    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+        FlutterLocalNotificationsPlugin();
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+
+    await service.configure(
+      androidConfiguration: AndroidConfiguration(
+        onStart: onStart, // Fungsi utama background
+        autoStart: false, // Jangan auto start, biar dikontrol UI
+        isForegroundMode: true,
+        notificationChannelId: notificationChannelId,
+        initialNotificationTitle: 'Pantau Aman Aktif',
+        initialNotificationContent: 'Menyiapkan pemantauan...',
+        foregroundServiceNotificationId: notificationId,
+      ),
+      iosConfiguration: IosConfiguration(
+        autoStart: false,
+        onForeground: onStart,
+        onBackground: onIosBackground,
+      ),
     );
   }
 
-  // Tampilkan notifikasi persistent "Pantauan Aktif"
-  // Ini yang membuat service tetap hidup di MIUI
-  static Future<void> tampilkanPantauanAktif(int intervalMenit) async {
-    const androidDetails = AndroidNotificationDetails(
-      'pantau_aktif',
-      'Pantauan Aktif',
-      channelDescription: 'Status pemantauan keamanan aktif',
-      importance: Importance.low,
-      priority: Priority.low,
-      ongoing: true, // Tidak bisa di-swipe, harus dari app
-      autoCancel: false,
-      showWhen: false,
-      icon: '@mipmap/ic_launcher',
-    );
-    await _plugin.show(
-      _idAktif,
-      'Pantau Aku Aktif',
-      'Konfirmasi setiap $intervalMenit menit. Ketuk untuk membuka.',
-      const NotificationDetails(android: androidDetails),
-    );
+  @pragma('vm:entry-point')
+  static Future<bool> onIosBackground(ServiceInstance service) async {
+    return true;
   }
 
-  // Tampilkan notifikasi urgent "Konfirmasi Diperlukan"
-  // Muncul saat check-in dipicu, sebagai layer tambahan
-  // Parameter [pesan] bisa di-custom per kesempatan (1, 2, atau final)
-  static Future<void> tampilkanCheckinDiperlukan({
-    String pesan = 'Tekan untuk konfirmasi. '
-        'Bantuan dikirim otomatis dalam 90 detik.',
-  }) async {
-    const androidDetails = AndroidNotificationDetails(
-      'pantau_checkin',
-      'Konfirmasi Keamanan',
-      channelDescription: 'Permintaan konfirmasi keamanan',
-      importance: Importance.max, // Heads-up notification
-      priority: Priority.max,
-      ongoing: false,
-      autoCancel: true,
-      // fullScreenIntent dihapus: dulu menyebabkan app langsung ke foreground
-      // saat notif dipanggil, sehingga lifecycle resumed menang atas AMAN dari overlay.
-      // Importance.max sudah cukup untuk memunculkan heads-up di layar.
-      icon: '@mipmap/ic_launcher',
-    );
-    await _plugin.show(
-      _idCheckin,
-      'Apakah Anda Aman?',
-      pesan,
-      const NotificationDetails(android: androidDetails),
-    );
-  }
+  @pragma('vm:entry-point')
+  static void onStart(ServiceInstance service) async {
+    DartPluginRegistrant.ensureInitialized();
 
-  // Tutup semua notifikasi Pantau Aku
-  static Future<void> tutupSemua() async {
-    await _plugin.cancel(_idAktif);
-    await _plugin.cancel(_idCheckin);
-  }
+    Timer? timer;
+    int sisaWaktu = 0;
+    int durasiAsli = 0;
+    int stateInfo = 1; // 1: Pantauan Aktif, 2: Check-in, 3: Darurat
+    int kesempatan = 0;
 
-  // Tutup hanya notifikasi check-in
-  static Future<void> tutupCheckin() async {
-    await _plugin.cancel(_idCheckin);
+    void updateNotification() {
+      if (service is AndroidServiceInstance) {
+        String title = "Sigap Pantau Aku";
+        String content = "";
+        if (stateInfo == 1) {
+          content = "Pantauan Aktif. Cek dalam $sisaWaktu dtk";
+        } else if (stateInfo == 2) {
+          title = "⚠️ KONFIRMASI KEAMANAN!";
+          content = "Ketuk SAYA AMAN. (Sisa $sisaWaktu dtk)";
+        } else if (stateInfo == 3) {
+          title = "🚨 DARURAT!";
+          content = "Tanda bahaya telah dikirim otomatis!";
+        }
+
+        service.setForegroundNotificationInfo(title: title, content: content);
+      }
+    }
+
+    void mintaCheckIn() async {
+      PantauAmanFlag.hapus();
+
+      service.invoke(
+          'tick', {'seconds': sisaWaktu, 'state': 2, 'kesempatan': kesempatan});
+      updateNotification();
+
+      if (kesempatan <= 2) {
+        try {
+          final active = await FlutterOverlayWindow.isActive();
+          if (active) {
+            await FlutterOverlayWindow.closeOverlay();
+            await Future.delayed(const Duration(milliseconds: 500));
+          }
+
+          await FlutterOverlayWindow.showOverlay(
+            height: 800, // Safe physical height
+            width: WindowSize.matchParent,
+            alignment: OverlayAlignment.bottomCenter,
+            flag: OverlayFlag.defaultFlag,
+            overlayTitle: 'Konfirmasi Keamanan Aktif',
+            overlayContent: 'Sigap memantau keamanan Anda.',
+          );
+
+          await Future.delayed(const Duration(milliseconds: 500));
+          FlutterOverlayWindow.shareData(
+              'START_OVERLAY_CHECKIN:${DateTime.now().millisecondsSinceEpoch}:$sisaWaktu');
+        } catch (_) {}
+      }
+    }
+
+    service.on('start_timer').listen((event) {
+      if (event == null) return;
+      durasiAsli = event['duration'] as int;
+      sisaWaktu = durasiAsli;
+      kesempatan = 0;
+      stateInfo = 1;
+
+      timer?.cancel();
+      updateNotification();
+
+      timer = Timer.periodic(const Duration(seconds: 1), (t) async {
+        if (PantauAmanFlag.adaSync()) {
+          PantauAmanFlag.hapus();
+          sisaWaktu = durasiAsli;
+          stateInfo = 1;
+          kesempatan = 0;
+
+          try {
+            await FlutterOverlayWindow.closeOverlay();
+          } catch (_) {}
+
+          updateNotification();
+          service.invoke('status_aman_dikonfirmasi');
+        }
+
+        if (stateInfo == 1) {
+          if (sisaWaktu > 0) {
+            sisaWaktu--;
+            if (sisaWaktu % 10 == 0) updateNotification();
+            service.invoke('tick',
+                {'seconds': sisaWaktu, 'state': 1, 'kesempatan': kesempatan});
+          } else {
+            stateInfo = 2;
+            kesempatan = 1;
+            sisaWaktu = 30;
+            mintaCheckIn();
+          }
+        } else if (stateInfo == 2) {
+          if (sisaWaktu > 0) {
+            sisaWaktu--;
+            if (sisaWaktu % 5 == 0) updateNotification();
+            service.invoke('tick',
+                {'seconds': sisaWaktu, 'state': 2, 'kesempatan': kesempatan});
+          } else {
+            if (kesempatan < 3) {
+              kesempatan++;
+              sisaWaktu = (kesempatan >= 3) ? 90 : 30;
+              mintaCheckIn();
+            } else {
+              stateInfo = 3;
+              updateNotification();
+              t.cancel();
+              service.invoke('darurat_triggered');
+              try {
+                await FlutterOverlayWindow.closeOverlay();
+              } catch (_) {}
+            }
+          }
+        }
+      });
+    });
+
+    service.on('stop_service').listen((event) {
+      timer?.cancel();
+      try {
+        FlutterOverlayWindow.closeOverlay();
+      } catch (_) {}
+      service.stopSelf();
+    });
+
+    service.on('reset_timer').listen((event) {
+      sisaWaktu = durasiAsli;
+      kesempatan = 0;
+      stateInfo = 1;
+      updateNotification();
+    });
   }
 }
