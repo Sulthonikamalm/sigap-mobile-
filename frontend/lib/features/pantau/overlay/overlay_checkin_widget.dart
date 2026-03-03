@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:vibration/vibration.dart';
+import 'package:sigap_mobile/features/pantau/services/pantau_aman_flag.dart';
 
 /// Widget overlay independen (background service).
 /// Durasi: 30 detik per kesempatan.
@@ -35,6 +36,7 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
 
   // Backup ticker 250ms — paksa repaint walau main timer di-throttle Android
   Timer? _backupTicker;
+  Timer? _amanPumpTimer;
 
   @override
   void initState() {
@@ -49,60 +51,68 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
     // Tunggu instruksi jelas dari main app.
     // Format: 'START_OVERLAY_CHECKIN:epochMs' atau 'START_OVERLAY_CHECKIN:epochMs:durasiDetik'
     FlutterOverlayWindow.overlayListener.listen((event) {
-      if (event is String &&
-          event.startsWith('START_OVERLAY_CHECKIN') &&
-          !_isStarted) {
-        _waktuMulai = DateTime.now();
-        final parts = event.split(':');
-        int? epochMsParsed;
+      if (event is! String) return;
 
-        // Parse epochMs (bagian kedua)
-        if (parts.length >= 2) {
-          epochMsParsed = int.tryParse(parts[1]);
-          if (epochMsParsed != null) {
-            _waktuMulai = DateTime.fromMillisecondsSinceEpoch(epochMsParsed);
-          }
-        }
-
-        // Parse durasiDetik (bagian ketiga, opsional)
-        if (parts.length >= 3) {
-          final durasi = int.tryParse(parts[2]);
-          if (durasi != null && durasi > 0) {
-            _durasiCheckin = durasi;
-          }
-        }
-
-        // ─── FRESHNESS CHECK ───
-        // Tolak sinyal basi dari round sebelumnya yang masih antri di IPC buffer.
-        // Jika epochMs sudah lebih dari (durasiDetik + 10 detik) yang lalu,
-        // sinyal ini pasti dari sesi lama. Abaikan sepenuhnya!
-        if (epochMsParsed != null) {
-          final ageSec =
-              (DateTime.now().millisecondsSinceEpoch - epochMsParsed) / 1000.0;
-          if (ageSec > _durasiCheckin + 10) {
-            return; // Sinyal basi — buang, jangan trigger timeout
-          }
-        }
-
-        final sisaTerhitung = _hitungSisaDetik();
-
-        if (mounted) {
-          setState(() {
-            _isStarted = true;
-            _sisaDetik = sisaTerhitung;
-          });
-        }
-
-        // Getar awal saat overlay pertama muncul
+      // Balas STATUS_QUERY — main app bertanya apakah AMAN sudah ditekan.
+      // Mengatasi sinyal AMAN yang hilang saat main isolate suspended.
+      if (event == 'STATUS_QUERY' && _isProcessingInput) {
         try {
-          Vibration.vibrate(duration: 400, amplitude: 200);
+          FlutterOverlayWindow.shareData('AMAN');
         } catch (_) {}
+        return;
+      }
 
-        if (sisaTerhitung <= 0) {
-          _triggerTimeout();
-        } else {
-          _mulaiCountdown();
+      if (!event.startsWith('START_OVERLAY_CHECKIN') || _isStarted) return;
+      _waktuMulai = DateTime.now();
+      final parts = event.split(':');
+      int? epochMsParsed;
+
+      // Parse epochMs (bagian kedua)
+      if (parts.length >= 2) {
+        epochMsParsed = int.tryParse(parts[1]);
+        if (epochMsParsed != null) {
+          _waktuMulai = DateTime.fromMillisecondsSinceEpoch(epochMsParsed);
         }
+      }
+
+      // Parse durasiDetik (bagian ketiga, opsional)
+      if (parts.length >= 3) {
+        final durasi = int.tryParse(parts[2]);
+        if (durasi != null && durasi > 0) {
+          _durasiCheckin = durasi;
+        }
+      }
+
+      // ─── FRESHNESS CHECK ───
+      // Tolak sinyal basi dari round sebelumnya yang masih antri di IPC buffer.
+      // Jika epochMs sudah lebih dari (durasiDetik + 10 detik) yang lalu,
+      // sinyal ini pasti dari sesi lama. Abaikan sepenuhnya!
+      if (epochMsParsed != null) {
+        final ageSec =
+            (DateTime.now().millisecondsSinceEpoch - epochMsParsed) / 1000.0;
+        if (ageSec > _durasiCheckin + 10) {
+          return; // Sinyal basi — buang, jangan trigger timeout
+        }
+      }
+
+      final sisaTerhitung = _hitungSisaDetik();
+
+      if (mounted) {
+        setState(() {
+          _isStarted = true;
+          _sisaDetik = sisaTerhitung;
+        });
+      }
+
+      // Getar awal saat overlay pertama muncul
+      try {
+        Vibration.vibrate(duration: 400, amplitude: 200);
+      } catch (_) {}
+
+      if (sisaTerhitung <= 0) {
+        _triggerTimeout();
+      } else {
+        _mulaiCountdown();
       }
     });
   }
@@ -191,6 +201,7 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
   void dispose() {
     _timer?.cancel();
     _backupTicker?.cancel();
+    _amanPumpTimer?.cancel();
     super.dispose();
   }
 
@@ -210,26 +221,34 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
       _sisaDetik = 999;
     });
 
-    // Pompa AMAN 20x selama 5 detik — beri waktu lebih untuk main app merespons.
+    // ── SUMBER KEBENARAN UTAMA ──
+    // Tulis flag AMAN ke file system. Ini yang dibaca main app saat resume.
+    // File system SELALU reliable — tidak tergantung IPC atau stream.
+    PantauAmanFlag.tulis();
+
+    // Kirim AMAN via IPC juga — sebagai bonus jika main app kebetulan aktif
+    try {
+      FlutterOverlayWindow.shareData('AMAN');
+    } catch (_) {}
+
+    // Pompa AMAN terus-menerus setiap 500ms sampai overlay di-dispose.
     // JANGAN closeOverlay() di sini! Biarkan main app yang menutup.
-    // Jika overlay menutup dirinya sendiri, pesan AMAN yang masih antri
-    // di buffer platform channel akan ikut dibuang bersama engine overlay.
-    int attempts = 0;
-    Timer.periodic(const Duration(milliseconds: 250), (t) {
-      if (!mounted || attempts >= 20) {
+    // Pompa continuous memastikan main app menerima sinyal saat kembali
+    // ke foreground, bahkan jika sinyal sebelumnya hilang karena
+    // main isolate suspended oleh Android.
+    _amanPumpTimer = Timer.periodic(const Duration(milliseconds: 500), (t) {
+      if (!mounted) {
         t.cancel();
-        // Jangan close di sini — main app akan close
       } else {
         try {
           FlutterOverlayWindow.shareData('AMAN');
         } catch (_) {}
-        attempts++;
       }
     });
 
-    // Fallback: jika main app tidak menutup overlay dalam 15 detik,
-    // tutup sendiri agar tidak stuck selamanya.
-    Future.delayed(const Duration(seconds: 15), () {
+    // Fallback: tutup sendiri setelah 30 detik jika main app tidak menutupnya.
+    // Diperpanjang dari 15 detik agar pompa AMAN punya jendela waktu lebih besar.
+    Future.delayed(const Duration(seconds: 30), () {
       try {
         FlutterOverlayWindow.closeOverlay();
       } catch (_) {}

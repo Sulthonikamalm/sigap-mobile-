@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:vibration/vibration.dart';
+import 'package:sigap_mobile/features/pantau/services/pantau_aman_flag.dart';
 
 /// Tampilan PRIMARY saat check-in diminta — user harus konfirmasi "aman".
 ///
@@ -70,7 +71,18 @@ class _PantauCheckInViewState extends State<PantauCheckInView>
     if (state == AppLifecycleState.resumed) {
       if (!mounted) return; // Guard 1: widget masih ada
 
-      _timer?.cancel();
+      _timer?.cancel(); // Selalu cancel timer dulu
+
+      // ── Cek flag AMAN dari overlay (file-based, SYNCHRONOUS) ──
+      // Jika user sudah tekan AMAN di overlay, flag ada di file system.
+      // Langsung konfirmasi — JANGAN restart timer atau trigger vibrasi.
+      if (PantauAmanFlag.adaSync()) {
+        // Tidak hapus flag di sini — biarkan PantauPage yang hapus
+        // setelah _konfirmasiAman() selesai diproses.
+        widget.onKonfirmasiAman();
+        return;
+      }
+
       _hitungSisaDariTimestamp();
 
       if (_sisaDetik <= 0) {

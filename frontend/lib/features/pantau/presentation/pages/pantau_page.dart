@@ -13,6 +13,7 @@ import 'package:sigap_mobile/features/pantau/presentation/pages/trigger_sent_pag
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sigap_mobile/features/pantau/services/pantau_notification_service.dart';
+import 'package:sigap_mobile/features/pantau/services/pantau_aman_flag.dart';
 import 'package:sigap_mobile/features/pantau/presentation/pages/panduan_izin_page.dart';
 
 /// Halaman "Pantau Aku" — Orchestrator.
@@ -126,16 +127,44 @@ class _PantauPageState extends State<PantauPage>
     super.didChangeAppLifecycleState(state);
 
     // Saat app kembali ke foreground dan sedang check-in:
-    // PENTING: Tunda 500ms agar platform channel events (sinyal AMAN dari overlay)
-    // yang masih di-antri sempat diproses lebih dulu oleh Dart event loop.
-    // Tanpa delay ini, timeout check bisa menang atas AMAN dari overlay.
     if (state == AppLifecycleState.resumed &&
         _state == 2 &&
         _waktuMulaiCheckin != null) {
-      Future.delayed(const Duration(milliseconds: 3500), () {
-        // Setelah delay: cek apakah AMAN sudah dikonfirmasi oleh overlay
-        if (!mounted || _state != 2 || _amanSudahDikonfirmasi) return;
+      // ── SUMBER KEBENARAN UTAMA: Cek flag file (SYNCHRONOUS) ──
+      // File flag ditulis oleh overlay saat user tekan AMAN.
+      // Cek ini SYNCHRONOUS dan DETERMINISTIC — tidak tergantung IPC,
+      // tidak race condition, tidak bisa hilang.
+      if (PantauAmanFlag.adaSync()) {
+        PantauAmanFlag.hapus();
+        _konfirmasiAman();
+        return; // Selesai — tidak perlu cek apapun lagi
+      }
 
+      // ── Layer 2: Tanya overlay via IPC (jaga-jaga flag gagal tulis) ──
+      if (_kesempatanCheckin <= 2) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (!mounted || _state != 2 || _amanSudahDikonfirmasi) return;
+          // Cek flag lagi — mungkin baru ditulis oleh overlay
+          if (PantauAmanFlag.adaSync()) {
+            PantauAmanFlag.hapus();
+            _konfirmasiAman();
+            return;
+          }
+          try {
+            FlutterOverlayWindow.shareData('STATUS_QUERY');
+          } catch (_) {}
+        });
+      }
+
+      // ── Layer 3: Fallback timeout check ──
+      Future.delayed(const Duration(milliseconds: 3500), () {
+        if (!mounted || _state != 2 || _amanSudahDikonfirmasi) return;
+        // Cek flag terakhir kali sebelum eskalasi
+        if (PantauAmanFlag.adaSync()) {
+          PantauAmanFlag.hapus();
+          _konfirmasiAman();
+          return;
+        }
         final selisihDetik =
             DateTime.now().difference(_waktuMulaiCheckin!).inSeconds;
         final batasFase = _kesempatanCheckin >= 3 ? 90 : 30;
@@ -257,6 +286,9 @@ class _PantauPageState extends State<PantauPage>
     // Reset flag AMAN untuk round baru
     _amanSudahDikonfirmasi = false;
 
+    // Hapus flag file dari round sebelumnya agar tidak bocor ke fase ini
+    PantauAmanFlag.hapus();
+
     // Catat waktu mulai fase ini
     _waktuMulaiCheckin = DateTime.now();
     setState(() => _state = 2);
@@ -289,9 +321,22 @@ class _PantauPageState extends State<PantauPage>
     try {
       final hasPermission = await FlutterOverlayWindow.isPermissionGranted();
       if (hasPermission) {
+        // Pastikan overlay sebelumnya benar-benar tertutup.
+        // Tanpa ini, showOverlay() gagal diam-diam karena service masih aktif.
+        try {
+          final masihAktif = await FlutterOverlayWindow.isActive();
+          if (masihAktif) {
+            await FlutterOverlayWindow.closeOverlay();
+            // Beri waktu Android menghentikan service sepenuhnya
+            await Future.delayed(const Duration(milliseconds: 800));
+          }
+        } catch (_) {}
+
+        if (!mounted) return;
+
         // flutter_overlay_window membutuhkan physical pixels (bukan logical dp)
         // Hitung kepadatan layar agar tinggi window konsisten ~240dp di semua HP
-        final dpr = mounted ? MediaQuery.of(context).devicePixelRatio : 2.75;
+        final dpr = MediaQuery.of(context).devicePixelRatio;
         final physicalHeight = (240 * dpr).toInt();
 
         await FlutterOverlayWindow.showOverlay(
@@ -393,6 +438,9 @@ class _PantauPageState extends State<PantauPage>
       FlutterOverlayWindow.closeOverlay();
     } catch (_) {}
 
+    // Hapus flag file — sudah diproses, tidak boleh terbaca lagi
+    PantauAmanFlag.hapus();
+
     // setState SEGERA setelah close — unmount PantauCheckInView secepat mungkin
     // agar observernya berhenti sebelum lifecycle resumed bisa memicunya.
     setState(() {
@@ -444,6 +492,7 @@ class _PantauPageState extends State<PantauPage>
       _sisaDetik = 0;
       _kesempatanCheckin = 0;
     });
+    PantauAmanFlag.hapus(); // Bersihkan flag saat pantauan dihentikan
     _tampilkanSnackbar('Pantauan dihentikan', const Color(0xFF333333));
   }
 
