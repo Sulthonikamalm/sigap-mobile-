@@ -6,12 +6,6 @@ import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:vibration/vibration.dart';
 import 'package:sigap_mobile/features/pantau/services/pantau_aman_flag.dart';
 
-/// Widget overlay independen (background service).
-/// Durasi: 30 detik per kesempatan.
-/// Getaran: di awal muncul + terus-menerus di ≤5 detik terakhir.
-///
-/// Sinyal dari main app: 'START_OVERLAY_CHECKIN:epochMs:durasiDetik'
-/// durasiDetik bersifat opsional, default 30.
 class OverlayCheckinWidget extends StatefulWidget {
   const OverlayCheckinWidget({super.key});
 
@@ -20,41 +14,31 @@ class OverlayCheckinWidget extends StatefulWidget {
 }
 
 class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
-  // Durasi default — bisa di-override via sinyal
   int _durasiCheckin = 30;
-
-  // Timer countdown
   int _sisaDetik = 30;
   Timer? _timer;
   bool _isStarted = false;
-
-  // Timestamp kapan check-in dimulai (dari main app)
   DateTime? _waktuMulai;
-
-  // Fade in
   double _opacity = 0.0;
-
-  // Backup ticker 250ms — paksa repaint walau main timer di-throttle Android
   Timer? _backupTicker;
   Timer? _amanPumpTimer;
+  bool _isProcessingInput = false;
 
   @override
   void initState() {
     super.initState();
 
+    // Trigger animasi fade-in awal (hanya jika engine fresh)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 50), () {
-        if (mounted) setState(() => _opacity = 1.0);
+        if (mounted && !_isProcessingInput) setState(() => _opacity = 1.0);
       });
     });
 
-    // Tunggu instruksi jelas dari main app.
-    // Format: 'START_OVERLAY_CHECKIN:epochMs' atau 'START_OVERLAY_CHECKIN:epochMs:durasiDetik'
     FlutterOverlayWindow.overlayListener.listen((event) {
       if (event is! String) return;
 
-      // Balas STATUS_QUERY — main app bertanya apakah AMAN sudah ditekan.
-      // Mengatasi sinyal AMAN yang hilang saat main isolate suspended.
+      // Balas STATUS_QUERY
       if (event == 'STATUS_QUERY' && _isProcessingInput) {
         try {
           FlutterOverlayWindow.shareData('AMAN');
@@ -62,62 +46,100 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
         return;
       }
 
-      if (!event.startsWith('START_OVERLAY_CHECKIN') || _isStarted) return;
-      _waktuMulai = DateTime.now();
-      final parts = event.split(':');
-      int? epochMsParsed;
-
-      // Parse epochMs (bagian kedua)
-      if (parts.length >= 2) {
-        epochMsParsed = int.tryParse(parts[1]);
-        if (epochMsParsed != null) {
-          _waktuMulai = DateTime.fromMillisecondsSinceEpoch(epochMsParsed);
-        }
-      }
-
-      // Parse durasiDetik (bagian ketiga, opsional)
-      if (parts.length >= 3) {
-        final durasi = int.tryParse(parts[2]);
-        if (durasi != null && durasi > 0) {
-          _durasiCheckin = durasi;
-        }
-      }
-
-      // ─── FRESHNESS CHECK ───
-      // Tolak sinyal basi dari round sebelumnya yang masih antri di IPC buffer.
-      // Jika epochMs sudah lebih dari (durasiDetik + 10 detik) yang lalu,
-      // sinyal ini pasti dari sesi lama. Abaikan sepenuhnya!
-      if (epochMsParsed != null) {
-        final ageSec =
-            (DateTime.now().millisecondsSinceEpoch - epochMsParsed) / 1000.0;
-        if (ageSec > _durasiCheckin + 10) {
-          return; // Sinyal basi — buang, jangan trigger timeout
-        }
-      }
-
-      final sisaTerhitung = _hitungSisaDetik();
-
-      if (mounted) {
-        setState(() {
-          _isStarted = true;
-          _sisaDetik = sisaTerhitung;
-        });
-      }
-
-      // Getar awal saat overlay pertama muncul
-      try {
-        Vibration.vibrate(duration: 400, amplitude: 200);
-      } catch (_) {}
-
-      if (sisaTerhitung <= 0) {
-        _triggerTimeout();
-      } else {
-        _mulaiCountdown();
+      if (event.startsWith('START_OVERLAY_CHECKIN')) {
+        _prosesStartSignal(event);
       }
     });
   }
 
-  /// Hitung sisa detik berdasarkan waktu nyata — single source of truth
+  /// FIX: Logika Start dipisah untuk menangani 'Soft Restart' (Engine Reuse)
+  void _prosesStartSignal(String event) {
+    final parts = event.split(':');
+    int? epochMsParsed;
+
+    // Parse timestamp
+    if (parts.length >= 2) {
+      epochMsParsed = int.tryParse(parts[1]);
+    }
+
+    // Parse durasi
+    if (parts.length >= 3) {
+      final durasi = int.tryParse(parts[2]);
+      if (durasi != null && durasi > 0) {
+        _durasiCheckin = durasi;
+      }
+    }
+
+    // Cek Freshness Sinyal
+    if (epochMsParsed != null) {
+      final requestTime = DateTime.fromMillisecondsSinceEpoch(epochMsParsed);
+      final ageSec =
+          (DateTime.now().millisecondsSinceEpoch - epochMsParsed) / 1000.0;
+
+      // Jika sinyal terlalu lama (> durasi + 10), abaikan (basi)
+      if (ageSec > _durasiCheckin + 10) return;
+
+      // FIX: Deteksi New Session (Soft Restart)
+      // Jika _waktuMulai lama ada, dan request baru ini lebih muda (lebih baru)
+      // dari waktu mulai sebelumnya, berarti ini adalah session baru!
+      // Kita harus paksa RESET state meskipun _isStarted bernilai true.
+      if (_waktuMulai != null && requestTime.isAfter(_waktuMulai!)) {
+        _resetStateUntukSessionBaru();
+      }
+
+      _waktuMulai = requestTime;
+    } else {
+      _waktuMulai = DateTime.now();
+    }
+
+    // Jika sudah berjalan untuk session yang sama, abaikan
+    // (Mencegah jitter dari spam sinyal START yang sama)
+    if (_isStarted && !_isBaruSajaDiReset) return;
+    _isBaruSajaDiReset = false;
+
+    final sisaTerhitung = _hitungSisaDetik();
+
+    if (mounted) {
+      setState(() {
+        _isStarted = true;
+        _sisaDetik = sisaTerhitung;
+        _opacity = 1.0; // Pastikan terlihat lagi
+      });
+    }
+
+    // Getar hanya jika sisa waktu masih banyak (bukan late delivery)
+    if (sisaTerhitung > 5) {
+      try {
+        Vibration.vibrate(duration: 400, amplitude: 200);
+      } catch (_) {}
+    }
+
+    if (sisaTerhitung <= 0) {
+      _triggerTimeout();
+    } else {
+      _mulaiCountdown();
+    }
+  }
+
+  // Helper flag untuk bypass check _isStarted sesaat setelah reset
+  bool _isBaruSajaDiReset = false;
+
+  /// FIX: Method untuk membersihkan state "Zombie"
+  void _resetStateUntukSessionBaru() {
+    _timer?.cancel();
+    _backupTicker?.cancel();
+    _amanPumpTimer?.cancel();
+
+    // Reset variabel kontrol
+    _isStarted = false;
+    _isProcessingInput = false; // Buka kunci input
+    _opacity = 0.0; // Mulai dari transparan untuk animasi masuk
+    _isBaruSajaDiReset = true;
+
+    // Hapus flag AMAN lama jika ada (defensive)
+    PantauAmanFlag.hapus();
+  }
+
   int _hitungSisaDetik() {
     if (_waktuMulai == null) return _durasiCheckin;
     final berlalu = DateTime.now().difference(_waktuMulai!).inSeconds;
@@ -128,7 +150,6 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
     _timer?.cancel();
     _backupTicker?.cancel();
 
-    // Timer utama: update setiap 1 detik
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -137,9 +158,7 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
       _refreshUI();
     });
 
-    // Backup ticker 100ms: paksa repaint bahkan jika MIUI throttle 5x lipat
-    // (100ms * 5 = 500ms, masih cukup smooth untuk user)
-    _backupTicker = Timer.periodic(const Duration(milliseconds: 100), (t) {
+    _backupTicker = Timer.periodic(const Duration(milliseconds: 250), (t) {
       if (!mounted) {
         t.cancel();
         return;
@@ -156,16 +175,12 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
     });
   }
 
-  /// Hitung dan update UI — dipanggil dari main timer
   void _refreshUI() {
     final sisa = _hitungSisaDetik();
-    // setState unconditional — pastikan UI selalu sinkron walau nilainya sama
     if (mounted) {
       setState(() => _sisaDetik = sisa);
     }
-
     _handleGetaran(sisa);
-
     if (sisa <= 0) {
       _timer?.cancel();
       _backupTicker?.cancel();
@@ -175,23 +190,18 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
 
   void _handleGetaran(int detikSisa) {
     try {
-      // ≤5 detik: getar terus-menerus setiap detik dengan intensitas progresif
       if (detikSisa <= 5 && detikSisa > 0) {
-        final amplitudo = 200 + ((5 - detikSisa) * 11); // 200→255
+        final amplitudo = 200 + ((5 - detikSisa) * 11);
         Vibration.vibrate(
           duration: 300,
           amplitude: amplitudo.clamp(200, 255),
         );
-      }
-      // Detik 0: Getar panjang tanda timeout
-      else if (detikSisa == 0) {
+      } else if (detikSisa == 0) {
         Vibration.vibrate(
           pattern: [0, 500, 200, 500],
           intensities: [0, 255, 0, 255],
         );
-      }
-      // Tiap 10 detik: pengingat halus
-      else if (detikSisa > 5 && detikSisa % 10 == 0) {
+      } else if (detikSisa > 5 && detikSisa % 10 == 0) {
         Vibration.vibrate(duration: 200, amplitude: 150);
       }
     } catch (_) {}
@@ -205,10 +215,9 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
     super.dispose();
   }
 
-  bool _isProcessingInput = false;
-
   void _triggerAman() {
     if (_isProcessingInput) return;
+    // Kunci input agar tidak spam
     _isProcessingInput = true;
     _timer?.cancel();
     _backupTicker?.cancel();
@@ -221,21 +230,12 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
       _sisaDetik = 999;
     });
 
-    // ── SUMBER KEBENARAN UTAMA ──
-    // Tulis flag AMAN ke file system. Ini yang dibaca main app saat resume.
-    // File system SELALU reliable — tidak tergantung IPC atau stream.
     PantauAmanFlag.tulis();
 
-    // Kirim AMAN via IPC juga — sebagai bonus jika main app kebetulan aktif
     try {
       FlutterOverlayWindow.shareData('AMAN');
     } catch (_) {}
 
-    // Pompa AMAN terus-menerus setiap 500ms sampai overlay di-dispose.
-    // JANGAN closeOverlay() di sini! Biarkan main app yang menutup.
-    // Pompa continuous memastikan main app menerima sinyal saat kembali
-    // ke foreground, bahkan jika sinyal sebelumnya hilang karena
-    // main isolate suspended oleh Android.
     _amanPumpTimer = Timer.periodic(const Duration(milliseconds: 500), (t) {
       if (!mounted) {
         t.cancel();
@@ -246,15 +246,15 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
       }
     });
 
-    // Fallback: tutup sendiri setelah 30 detik jika main app tidak menutupnya.
-    // Diperpanjang dari 15 detik agar pompa AMAN punya jendela waktu lebih besar.
     Future.delayed(const Duration(seconds: 30), () {
       try {
         FlutterOverlayWindow.closeOverlay();
       } catch (_) {}
     });
 
-    // Sembunyikan UI — overlay window tetap ada tapi invisible
+    // Hilangkan UI, tapi State _isProcessingInput TETAP TRUE
+    // Inilah penyebab bug di versi sebelumnya jika engine tidak mati.
+    // Logic _resetStateUntukSessionBaru() di atas yang akan memperbaikinya.
     Future.delayed(const Duration(milliseconds: 150), () {
       if (mounted) setState(() => _opacity = 0.0);
     });
@@ -292,18 +292,10 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isProcessingInput) {
-      return Material(
-        color: Colors.transparent,
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 150),
-          opacity: _opacity,
-          child: const SizedBox.shrink(),
-        ),
-      );
-    }
+    // FIX: Jangan return SizedBox.shrink() jika sedang proses,
+    // cukup mainkan Opacity-nya saja agar struktur widget tree tetap stabil.
+    // Jika _isProcessingInput true, opacity akan 0.0 dari logic di atas.
 
-    // Warna progresif: hijau > 15s, amber 6-15s, merah ≤5s
     Color progressColor;
     if (_sisaDetik <= 5) {
       progressColor = AppConstants.urgentColor;
@@ -343,8 +335,6 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: 16),
-
-                  // Baris atas: label + countdown
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -366,10 +356,7 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 12),
-
-                  // Progress bar tipis
                   ClipRRect(
                     borderRadius: BorderRadius.circular(2),
                     child: LinearProgressIndicator(
@@ -379,10 +366,7 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
                       valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Tombol AMAN — Fitts's Law
                   SizedBox(
                     width: double.infinity,
                     height: 64,
@@ -406,7 +390,6 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
                 ],
               ),
