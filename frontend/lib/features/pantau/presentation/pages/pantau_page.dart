@@ -9,12 +9,11 @@ import 'package:sigap_mobile/features/pantau/presentation/widgets/pantau_header.
 import 'package:sigap_mobile/features/pantau/presentation/widgets/interval_picker.dart';
 import 'package:sigap_mobile/features/pantau/presentation/widgets/pantau_aktif_view.dart';
 import 'package:sigap_mobile/features/pantau/presentation/widgets/pantau_checkin_view.dart';
-import 'package:sigap_mobile/features/pantau/presentation/pages/trigger_sent_page.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sigap_mobile/features/pantau/services/pantau_aman_flag.dart';
 import 'package:sigap_mobile/features/pantau/presentation/pages/panduan_izin_page.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:sigap_mobile/features/pantau/services/pantau_service.dart';
 
 class PantauPage extends StatefulWidget {
   const PantauPage({super.key});
@@ -25,8 +24,6 @@ class PantauPage extends StatefulWidget {
 
 class _PantauPageState extends State<PantauPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  // ── State ──
-  StatusPantauan _status = const Persiapan();
   int _intervalDipilih = 45;
   final List<int> _opsiInterval = [2, 5, 10, 15, 30, 45, 60];
 
@@ -34,17 +31,8 @@ class _PantauPageState extends State<PantauPage>
   final TextEditingController _lokasiController = TextEditingController();
 
   bool _sudahTampilPanduan = false;
-  bool _sedangMengaktifkan = false; // FIX: Loading state cegah double-tap
+  bool _sedangMengaktifkan = false;
   static const int _batasKarakter = 100;
-
-  // Timer lokal agar UI tetap berjalan mulus meskipun service tick tersendat.
-  // Service tick tetap override/koreksi nilai saat diterima.
-  Timer? _uiTickTimer;
-
-  StreamSubscription? _overlaySubscription;
-  StreamSubscription? _tickSubscription;
-  StreamSubscription? _amanSubscription;
-  StreamSubscription? _daruratSubscription;
 
   @override
   void initState() {
@@ -57,148 +45,14 @@ class _PantauPageState extends State<PantauPage>
     );
     _pulseController.repeat();
 
-    _listenToBackgroundService();
-
-    // Listener overlay (Jaga-jaga jika tombol ditapped dari overlay & dikirim via IPC)
-    _overlaySubscription = FlutterOverlayWindow.overlayListener.listen((data) {
-      if (!mounted) return;
-      if (data == 'AMAN' || data == 'AMAN_CONFIRMED') {
-        _handleAmanDariOverlay();
-      }
+    // Dengarkan perubahan state untuk sinkronisasi animasi UI
+    PantauService.instance.stateStream.listen((state) {
+      if (mounted) _sinkronkanPulseController(state);
     });
   }
 
-  void _listenToBackgroundService() {
-    final service = FlutterBackgroundService();
-
-    _tickSubscription = service.on('tick').listen((event) {
-      if (event == null || !mounted) return;
-
-      final int newState = event['state'];
-      final int newSisa = event['seconds'];
-      final int newKesempatan = event['kesempatan'] ?? 0;
-
-      setState(() {
-        switch (newState) {
-          case 1:
-            _status = Aktif(
-              sisaDetik: newSisa,
-              intervalDetik: _intervalDipilih * 60,
-            );
-          case 2:
-            // Catat waktu mulai check-in jika baru masuk fase ini
-            final DateTime waktuMulai;
-            if (_status is CheckInDiminta) {
-              final current = _status as CheckInDiminta;
-              // Jika kesempatan berubah, ini adalah fase check-in baru
-              waktuMulai = current.kesempatan != newKesempatan
-                  ? DateTime.now()
-                  : current.waktuMulai;
-            } else {
-              waktuMulai = DateTime.now();
-            }
-            _status = CheckInDiminta(
-              sisaDetik: newSisa,
-              kesempatan: newKesempatan,
-              waktuMulai: waktuMulai,
-            );
-          default:
-            break;
-        }
-      });
-
-      // Pastikan UI tick timer berjalan saat status Aktif
-      _pastikanUiTickTimerBerjalan();
-
-      // FIX: Stop pulse saat bukan persiapan — hemat CPU
-      _sinkronkanPulseController();
-    });
-
-    _amanSubscription = service.on('status_aman_dikonfirmasi').listen((event) {
-      if (!mounted) return;
-      _handleAmanDariOverlay();
-    });
-
-    _daruratSubscription = service.on('darurat_triggered').listen((event) {
-      if (!mounted) return;
-      _prosesTimeoutCheckin();
-    });
-  }
-
-  /// Timer lokal 1 detik untuk UI countdown.
-  ///
-  /// PantauAktifView adalah StatelessWidget — ia tidak punya timer sendiri.
-  /// Tanpa timer ini, jika service tick terlambat atau hilang (IPC latency,
-  /// device throttle, slow spin-up), countdown di UI akan freeze.
-  ///
-  /// Saat service tick diterima, nilainya OVERRIDE _status.sisaDetik,
-  /// sehingga timer lokal dan service selalu tersinkronisasi.
-  ///
-  /// KRUSIAL: Saat countdown mencapai 0, timer ini memicu transisi ke
-  /// CheckInDiminta. Ini adalah FALLBACK jika service tidak berjalan
-  /// atau `start_timer` invoke hilang saat spin-up.
-  void _pastikanUiTickTimerBerjalan() {
-    if (_status is Aktif && _uiTickTimer == null) {
-      _uiTickTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (!mounted) {
-          _uiTickTimer?.cancel();
-          _uiTickTimer = null;
-          return;
-        }
-
-        final current = _status;
-        if (current is Aktif && current.sisaDetik > 0) {
-          setState(() {
-            _status = Aktif(
-              sisaDetik: current.sisaDetik - 1,
-              intervalDetik: current.intervalDetik,
-            );
-          });
-        } else if (current is Aktif && current.sisaDetik <= 0) {
-          // ══════════════════════════════════════════════════
-          // WAKTU HABIS — Transisi ke fase Check-in
-          // ══════════════════════════════════════════════════
-          _uiTickTimer?.cancel();
-          _uiTickTimer = null;
-
-          debugPrint(
-              '[PantauPage] UI timer habis — transisi ke CheckInDiminta');
-
-          // Retry start_timer ke service (jika invoke awal hilang)
-          FlutterBackgroundService().invoke('start_timer', {
-            'duration': _intervalDipilih * 60,
-          });
-
-          final waktuMulai = DateTime.now();
-          setState(() {
-            _status = CheckInDiminta(
-              sisaDetik: 30, // Kesempatan pertama = 30 detik
-              kesempatan: 1,
-              waktuMulai: waktuMulai,
-            );
-          });
-          _sinkronkanPulseController();
-        } else {
-          // Bukan Aktif lagi — stop timer lokal
-          _uiTickTimer?.cancel();
-          _uiTickTimer = null;
-        }
-      });
-    } else if (_status is! Aktif) {
-      _uiTickTimer?.cancel();
-      _uiTickTimer = null;
-    }
-  }
-
-  void _hentikanUiTickTimer() {
-    _uiTickTimer?.cancel();
-    _uiTickTimer = null;
-  }
-
-  /// Sinkronkan AnimationController untuk pulse berdasarkan status.
-  /// Hanya aktif saat Persiapan — hemat CPU saat monitoring berjalan.
-  void _sinkronkanPulseController() {
-    if (_status is Persiapan) {
+  void _sinkronkanPulseController(StatusPantauan status) {
+    if (status is Persiapan) {
       if (!_pulseController.isAnimating) {
         _pulseController.repeat();
       }
@@ -211,11 +65,6 @@ class _PantauPageState extends State<PantauPage>
 
   @override
   void dispose() {
-    _overlaySubscription?.cancel();
-    _tickSubscription?.cancel();
-    _amanSubscription?.cancel();
-    _daruratSubscription?.cancel();
-    _hentikanUiTickTimer();
     _pulseController.dispose();
     _lokasiController.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -226,9 +75,10 @@ class _PantauPageState extends State<PantauPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
-      // Flag diperiksa di UI juga agar seketika ter-update (tidak tunggu tick 1 detik)
-      if (_status is CheckInDiminta && PantauAmanFlag.adaSync()) {
-        _handleAmanDariOverlay();
+      // Periksa flag aman setelah lock screen/background
+      if (PantauService.instance.currentState is CheckInDiminta &&
+          PantauAmanFlag.adaSync()) {
+        PantauService.instance.konfirmasiAmanLokal();
       }
     }
   }
@@ -269,30 +119,8 @@ class _PantauPageState extends State<PantauPage>
 
       HapticFeedback.mediumImpact();
 
-      final service = FlutterBackgroundService();
-      bool isRunning = await service.isRunning();
-      if (!isRunning) {
-        await service.startService();
-        // JEDA KRUSIAL: Beri waktu background isolate untuk spin-up
-        await Future.delayed(const Duration(milliseconds: 1000));
-      }
-
-      // Kirim perintah start timer ke background service
-      service.invoke('start_timer', {
-        'duration': _intervalDipilih * 60,
-      });
-
-      if (!mounted) return;
-
-      setState(() {
-        _status = Aktif(
-          sisaDetik: _intervalDipilih * 60,
-          intervalDetik: _intervalDipilih * 60,
-        );
-      });
-
-      _pastikanUiTickTimerBerjalan();
-      _sinkronkanPulseController();
+      // Mendelegasikan start ke service singleton
+      await PantauService.instance.startWatch(_intervalDipilih);
     } catch (e) {
       debugPrint('[PantauPage] Gagal mengaktifkan pantauan: $e');
       if (mounted) {
@@ -306,69 +134,10 @@ class _PantauPageState extends State<PantauPage>
     }
   }
 
-  void _handleAmanDariOverlay() {
-    FlutterBackgroundService().invoke('reset_timer');
-    PantauAmanFlag.hapus();
-
+  void _hentikanPantauan() {
     HapticFeedback.mediumImpact();
-    try {
-      FlutterOverlayWindow.closeOverlay();
-    } catch (e) {
-      debugPrint('[PantauPage] Gagal tutup overlay: $e');
-    }
-
-    if (mounted) {
-      _hentikanUiTickTimer(); // Reset timer lokal sebelum set state baru
-      setState(() {
-        _status = Aktif(
-          sisaDetik: _intervalDipilih * 60,
-          intervalDetik: _intervalDipilih * 60,
-        );
-      });
-      _pastikanUiTickTimerBerjalan();
-      _sinkronkanPulseController();
-      _tampilkanSnackbar(
-          'Aman. Pantauan dilanjutkan.', AppConstants.successColor);
-    }
-  }
-
-  // Dipanggil UI (PantauCheckInView)
-  void _konfirmasiAmanLokal() {
-    PantauAmanFlag.tulis(); // Pastikan flag ditulis agar service juga baca
-    _handleAmanDariOverlay();
-  }
-
-  void _hentikanPantauan() async {
-    FlutterBackgroundService().invoke('stop_service');
-    PantauAmanFlag.hapus();
-    _hentikanUiTickTimer();
-
-    try {
-      final isActive = await FlutterOverlayWindow.isActive();
-      if (isActive) {
-        await FlutterOverlayWindow.closeOverlay();
-      }
-    } catch (e) {
-      debugPrint('[PantauPage] Gagal tutup overlay saat hentikan: $e');
-    }
-
-    if (!mounted) return;
-
-    HapticFeedback.mediumImpact();
-    setState(() {
-      _status = const Persiapan();
-    });
-    _sinkronkanPulseController();
+    PantauService.instance.stopWatch();
     _tampilkanSnackbar('Pantauan dihentikan', const Color(0xFF333333));
-  }
-
-  void _prosesTimeoutCheckin() {
-    if (!mounted) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TriggerSentPage()),
-    );
-    _hentikanPantauan();
   }
 
   void _tampilkanSnackbar(String pesan, Color warna) {
@@ -388,60 +157,57 @@ class _PantauPageState extends State<PantauPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: _bangunAppBar(),
-      body: SafeArea(
-        child: switch (_status) {
-          Persiapan() => _bangunTampilanPersiapan(),
-          Aktif(sisaDetik: final sisa, intervalDetik: final interval) =>
-            PantauAktifView(
-              sisaDetik: sisa,
-              intervalMenit: interval ~/ 60,
-              lokasiUser: _lokasiController.text,
-              onHentikan: _hentikanPantauan,
-              onDarurat: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TriggerSentPage(),
+    return StreamBuilder<StatusPantauan>(
+        stream: PantauService.instance.stateStream,
+        initialData: PantauService.instance.currentState,
+        builder: (context, snapshot) {
+          final status = snapshot.requireData;
+
+          return Scaffold(
+            backgroundColor: Colors.white,
+            appBar: _bangunAppBar(status),
+            body: SafeArea(
+              child: switch (status) {
+                Persiapan() => _bangunTampilanPersiapan(),
+                Aktif(sisaDetik: final sisa, intervalDetik: final interval) =>
+                  PantauAktifView(
+                    sisaDetik: sisa,
+                    intervalMenit: interval ~/ 60,
+                    lokasiUser: _lokasiController.text,
+                    onHentikan: _hentikanPantauan,
+                    onDarurat: () {
+                      PantauService.instance.pushDarurat();
+                    },
                   ),
-                );
-                _hentikanPantauan();
+                CheckInDiminta(
+                  kesempatan: final kesempatan,
+                  waktuMulai: final waktuMulai
+                ) =>
+                  PantauCheckInView(
+                    key: ValueKey(
+                        'checkin_${kesempatan}_${waktuMulai.millisecondsSinceEpoch}'),
+                    onKonfirmasiAman:
+                        PantauService.instance.konfirmasiAmanLokal,
+                    onDarurat: () {
+                      PantauService.instance.pushDarurat();
+                    },
+                    onTimeout: () {
+                      // Timeout ditangani stream service
+                    },
+                    kesempatan: kesempatan,
+                    timeoutDetik: kesempatan >= 3 ? 90 : 30,
+                    waktuMulaiCheckin: waktuMulai,
+                  ),
+                DaruratTerkirim() => const SizedBox
+                    .shrink(), // Langsung dinavigasi via GlobalNavigatorKey
               },
             ),
-          CheckInDiminta(
-            kesempatan: final kesempatan,
-            waktuMulai: final waktuMulai
-          ) =>
-            PantauCheckInView(
-              key: ValueKey(
-                  'checkin_${kesempatan}_${waktuMulai.millisecondsSinceEpoch}'),
-              onKonfirmasiAman: _konfirmasiAmanLokal,
-              onDarurat: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TriggerSentPage(),
-                  ),
-                );
-                _hentikanPantauan();
-              },
-              onTimeout: () {
-                // UI tidak paksa timeout eskalasi, biarkan service yang pindah state
-              },
-              kesempatan: kesempatan,
-              timeoutDetik: kesempatan >= 3 ? 90 : 30,
-              waktuMulaiCheckin: waktuMulai,
-            ),
-          DaruratTerkirim() => const SizedBox.shrink(),
-        },
-      ),
-    );
+          );
+        });
   }
 
-  PreferredSizeWidget _bangunAppBar() {
-    final adalahPersiapan = _status is Persiapan;
+  PreferredSizeWidget _bangunAppBar(StatusPantauan status) {
+    final adalahPersiapan = status is Persiapan;
 
     return AppBar(
       backgroundColor: Colors.white,
@@ -715,16 +481,8 @@ class _PantauPageState extends State<PantauPage>
                       Navigator.pop(ctx);
                       // 2. Keluar halaman PantauPage
                       Navigator.pop(context);
-                      // 3. Cleanup di background (service + overlay)
-                      //    Ini aman karena invoke ke service tidak butuh mounted widget.
-                      FlutterBackgroundService().invoke('stop_service');
-                      PantauAmanFlag.hapus();
-                      try {
-                        FlutterOverlayWindow.closeOverlay();
-                      } catch (e) {
-                        debugPrint(
-                            '[PantauPage] Gagal tutup overlay saat keluar: $e');
-                      }
+                      // 3. Cleanup di background (service + overlay) didelegasikan
+                      PantauService.instance.stopWatch();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppConstants.urgentColor,

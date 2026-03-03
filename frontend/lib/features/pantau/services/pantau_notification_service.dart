@@ -35,7 +35,7 @@ class PantauNotificationService {
         isForegroundMode: true,
         notificationChannelId: notificationChannelId,
         initialNotificationTitle: 'Pantau Aman Aktif',
-        initialNotificationContent: 'Menyiapkan pemantauan...',
+        initialNotificationContent: 'Pantauan sedang dimulai...',
         foregroundServiceNotificationId: notificationId,
       ),
       iosConfiguration: IosConfiguration(
@@ -142,7 +142,7 @@ class PantauNotificationService {
         if (stateInfo == 1) {
           if (sisaWaktu > 0) {
             sisaWaktu--;
-            if (sisaWaktu % 10 == 0) updateNotification();
+            updateNotification();
             service.invoke('tick',
                 {'seconds': sisaWaktu, 'state': 1, 'kesempatan': kesempatan});
           } else {
