@@ -24,6 +24,12 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
   Timer? _amanPumpTimer;
   bool _isProcessingInput = false;
 
+  // FIX: Simpan subscription agar bisa di-cancel di dispose()
+  StreamSubscription? _overlayListenerSubscription;
+
+  /// Batas maksimal iterasi _amanPumpTimer (60 × 500ms = 30 detik)
+  static const int _batasMaxPumpAman = 60;
+
   @override
   void initState() {
     super.initState();
@@ -35,14 +41,18 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
       });
     });
 
-    FlutterOverlayWindow.overlayListener.listen((event) {
+    // FIX: Simpan subscription untuk cleanup
+    _overlayListenerSubscription =
+        FlutterOverlayWindow.overlayListener.listen((event) {
       if (event is! String) return;
 
       // Balas STATUS_QUERY
       if (event == 'STATUS_QUERY' && _isProcessingInput) {
         try {
           FlutterOverlayWindow.shareData('AMAN');
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[OverlayCheckin] Gagal shareData STATUS_QUERY: $e');
+        }
         return;
       }
 
@@ -80,9 +90,6 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
       if (ageSec > _durasiCheckin + 10) return;
 
       // FIX: Deteksi New Session (Soft Restart)
-      // Jika _waktuMulai lama ada, dan request baru ini lebih muda (lebih baru)
-      // dari waktu mulai sebelumnya, berarti ini adalah session baru!
-      // Kita harus paksa RESET state meskipun _isStarted bernilai true.
       if (_waktuMulai != null && requestTime.isAfter(_waktuMulai!)) {
         _resetStateUntukSessionBaru();
       }
@@ -93,7 +100,6 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
     }
 
     // Jika sudah berjalan untuk session yang sama, abaikan
-    // (Mencegah jitter dari spam sinyal START yang sama)
     if (_isStarted && !_isBaruSajaDiReset) return;
     _isBaruSajaDiReset = false;
 
@@ -103,7 +109,7 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
       setState(() {
         _isStarted = true;
         _sisaDetik = sisaTerhitung;
-        _opacity = 1.0; // Pastikan terlihat lagi
+        _opacity = 1.0;
       });
     }
 
@@ -111,7 +117,9 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
     if (sisaTerhitung > 5) {
       try {
         Vibration.vibrate(duration: 400, amplitude: 200);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[OverlayCheckin] Gagal vibrasi awal: $e');
+      }
     }
 
     if (sisaTerhitung <= 0) {
@@ -124,19 +132,17 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
   // Helper flag untuk bypass check _isStarted sesaat setelah reset
   bool _isBaruSajaDiReset = false;
 
-  /// FIX: Method untuk membersihkan state "Zombie"
+  /// Method untuk membersihkan state "Zombie"
   void _resetStateUntukSessionBaru() {
     _timer?.cancel();
     _backupTicker?.cancel();
     _amanPumpTimer?.cancel();
 
-    // Reset variabel kontrol
     _isStarted = false;
-    _isProcessingInput = false; // Buka kunci input
-    _opacity = 0.0; // Mulai dari transparan untuk animasi masuk
+    _isProcessingInput = false;
+    _opacity = 0.0;
     _isBaruSajaDiReset = true;
 
-    // Hapus flag AMAN lama jika ada (defensive)
     PantauAmanFlag.hapus();
   }
 
@@ -204,7 +210,9 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
       } else if (detikSisa > 5 && detikSisa % 10 == 0) {
         Vibration.vibrate(duration: 200, amplitude: 150);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[OverlayCheckin] Gagal vibrasi (sisa=$detikSisa): $e');
+    }
   }
 
   @override
@@ -212,19 +220,22 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
     _timer?.cancel();
     _backupTicker?.cancel();
     _amanPumpTimer?.cancel();
+    // FIX: Cancel stream subscription — mencegah memory leak
+    _overlayListenerSubscription?.cancel();
     super.dispose();
   }
 
   void _triggerAman() {
     if (_isProcessingInput) return;
-    // Kunci input agar tidak spam
     _isProcessingInput = true;
     _timer?.cancel();
     _backupTicker?.cancel();
 
     try {
       Vibration.vibrate(duration: 50, amplitude: 128);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[OverlayCheckin] Gagal vibrasi aman: $e');
+    }
 
     setState(() {
       _sisaDetik = 999;
@@ -234,27 +245,33 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
 
     try {
       FlutterOverlayWindow.shareData('AMAN');
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[OverlayCheckin] Gagal shareData AMAN: $e');
+    }
 
+    // FIX: Batasi pump agar tidak broadcast selamanya
+    int pumpCount = 0;
     _amanPumpTimer = Timer.periodic(const Duration(milliseconds: 500), (t) {
-      if (!mounted) {
+      pumpCount++;
+      if (!mounted || pumpCount >= _batasMaxPumpAman) {
         t.cancel();
       } else {
         try {
           FlutterOverlayWindow.shareData('AMAN');
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[OverlayCheckin] Gagal pump AMAN ($pumpCount): $e');
+        }
       }
     });
 
     Future.delayed(const Duration(seconds: 30), () {
       try {
         FlutterOverlayWindow.closeOverlay();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[OverlayCheckin] Gagal closeOverlay setelah aman: $e');
+      }
     });
 
-    // Hilangkan UI, tapi State _isProcessingInput TETAP TRUE
-    // Inilah penyebab bug di versi sebelumnya jika engine tidak mati.
-    // Logic _resetStateUntukSessionBaru() di atas yang akan memperbaikinya.
     Future.delayed(const Duration(milliseconds: 150), () {
       if (mounted) setState(() => _opacity = 0.0);
     });
@@ -276,11 +293,15 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
         t.cancel();
         try {
           FlutterOverlayWindow.closeOverlay();
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[OverlayCheckin] Gagal closeOverlay timeout: $e');
+        }
       } else {
         try {
           FlutterOverlayWindow.shareData('TIMEOUT');
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[OverlayCheckin] Gagal shareData TIMEOUT: $e');
+        }
         attempts++;
       }
     });
@@ -292,10 +313,6 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // FIX: Jangan return SizedBox.shrink() jika sedang proses,
-    // cukup mainkan Opacity-nya saja agar struktur widget tree tetap stabil.
-    // Jika _isProcessingInput true, opacity akan 0.0 dari logic di atas.
-
     Color progressColor;
     if (_sisaDetik <= 5) {
       progressColor = AppConstants.urgentColor;

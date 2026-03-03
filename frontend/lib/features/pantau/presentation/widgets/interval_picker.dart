@@ -2,12 +2,15 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Widget chip pemilih interval waktu konfirmasi.
-/// Menggunakan grid 2x2 sesuai mockup HTML.
+/// Widget pemilih interval waktu konfirmasi.
+/// Menampilkan semua opsi dari list secara dinamis menggunakan grid 2 kolom.
 class IntervalPicker extends StatelessWidget {
   final int intervalDipilih;
   final List<int> opsiInterval;
   final ValueChanged<int> onPilih;
+
+  /// Batas maksimal interval custom (8 jam)
+  static const int _batasMaxMenit = 480;
 
   const IntervalPicker({
     super.key,
@@ -18,31 +21,44 @@ class IntervalPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tampilkan semua opsi + card custom dalam grid 2 kolom
+    final totalItems = opsiInterval.length + 1; // +1 untuk card custom
+    final jumlahBaris = (totalItems / 2).ceil();
+
     return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(child: _bangunCardOpsi(opsiInterval[0], false)),
-            const SizedBox(width: 12),
-            Expanded(child: _bangunCardOpsi(opsiInterval[1], true)), // Ideal
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _bangunCardOpsi(opsiInterval[2], false)),
-            const SizedBox(width: 12),
-            Expanded(child: _bangunCardCustom(context)),
-          ],
-        ),
-      ],
+      children: List.generate(jumlahBaris, (barisIndex) {
+        final indexKiri = barisIndex * 2;
+        final indexKanan = indexKiri + 1;
+
+        return Padding(
+          padding:
+              EdgeInsets.only(bottom: barisIndex < jumlahBaris - 1 ? 12 : 0),
+          child: Row(
+            children: [
+              // Kolom kiri — selalu ada karena totalItems >= 1
+              Expanded(
+                child: indexKiri < opsiInterval.length
+                    ? _bangunCardOpsi(opsiInterval[indexKiri])
+                    : _bangunCardCustom(context),
+              ),
+              const SizedBox(width: 12),
+              // Kolom kanan — bisa berisi opsi, card custom, atau kosong
+              Expanded(
+                child: indexKanan < opsiInterval.length
+                    ? _bangunCardOpsi(opsiInterval[indexKanan])
+                    : indexKanan == opsiInterval.length
+                        ? _bangunCardCustom(context)
+                        : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        );
+      }),
     );
   }
 
-  Widget _bangunCardOpsi(int menit, bool isIdeal) {
+  Widget _bangunCardOpsi(int menit) {
     final terpilih = menit == intervalDipilih;
-
-    // Warna #7BA8DC
     const Color safetyBlue = Color(0xFF7BA8DC);
 
     return GestureDetector(
@@ -74,7 +90,7 @@ class IntervalPicker extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  isIdeal ? 'Menit (Ideal)' : 'Menit',
+                  'Menit',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -108,11 +124,6 @@ class IntervalPicker extends StatelessWidget {
   }
 
   Widget _bangunCardCustom(BuildContext context) {
-    return customContainer(context);
-  }
-
-  // Dashed border custom button
-  Widget customContainer(BuildContext context) {
     return GestureDetector(
       onTap: () => _tampilkanModalAturWaktu(context),
       child: Container(
@@ -121,11 +132,8 @@ class IntervalPicker extends StatelessWidget {
           color: Colors.grey.shade50,
           borderRadius: BorderRadius.circular(12),
         ),
-        // Untuk dashed border bisa menggunakan widget luar seperti dotted_border
-        // Tapi kita pakai manual simple border sebagai pendekatan terdekat
         child: Stack(
           children: [
-            // Fake dashed border concept menggunakan CustomPaint
             Positioned.fill(
               child: CustomPaint(
                 painter: _DashedBorderPainter(
@@ -163,119 +171,140 @@ class IntervalPicker extends StatelessWidget {
 
   void _tampilkanModalAturWaktu(BuildContext context) {
     final TextEditingController controller = TextEditingController();
+    String? pesanError;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Atur Waktu Khusus',
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.grey.shade900,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          icon: Icon(Icons.close_rounded,
+                              color: Colors.grey.shade400),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     Text(
-                      'Atur Waktu Khusus',
+                      'Masukkan interval 1–$_batasMaxMenit menit.',
                       style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.grey.shade900,
+                        fontSize: 13,
+                        color: Colors.grey.shade500,
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      icon: Icon(Icons.close_rounded,
-                          color: Colors.grey.shade400),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: controller,
+                      keyboardType: TextInputType.number,
+                      autofocus: true,
+                      style: GoogleFonts.inter(
+                          fontSize: 18, fontWeight: FontWeight.w600),
+                      onChanged: (_) {
+                        // Hapus pesan error saat user mengetik ulang
+                        if (pesanError != null) {
+                          setModalState(() => pesanError = null);
+                        }
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Misal: 15',
+                        hintStyle: TextStyle(color: Colors.grey.shade400),
+                        suffixText: 'Menit',
+                        suffixStyle: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF7BA8DC)),
+                        errorText: pesanError,
+                        errorStyle: GoogleFonts.poppins(fontSize: 11),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: Colors.grey.shade200),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(color: Colors.grey.shade200),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF7BA8DC), width: 1.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final val = int.tryParse(controller.text.trim());
+                          if (val == null) {
+                            setModalState(
+                                () => pesanError = 'Masukkan angka yang valid');
+                            return;
+                          }
+                          if (val < 1 || val > _batasMaxMenit) {
+                            setModalState(() => pesanError =
+                                'Interval harus antara 1–$_batasMaxMenit menit');
+                            return;
+                          }
+                          onPilih(val);
+                          Navigator.pop(ctx);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7BA8DC),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Text(
+                          'Terapkan',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Masukkan interval konfirmasi keamanan dalam menit.',
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: controller,
-                  keyboardType: TextInputType.number,
-                  autofocus: true,
-                  style: GoogleFonts.inter(
-                      fontSize: 18, fontWeight: FontWeight.w600),
-                  decoration: InputDecoration(
-                    hintText: 'Misal: 15',
-                    hintStyle: TextStyle(color: Colors.grey.shade400),
-                    suffixText: 'Menit',
-                    suffixStyle: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF7BA8DC)),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(
-                          color: Color(0xFF7BA8DC), width: 1.5),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      final val = int.tryParse(controller.text.trim());
-                      if (val != null && val > 0) {
-                        onPilih(val);
-                        Navigator.pop(ctx);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7BA8DC),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: Text(
-                      'Terapkan',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );

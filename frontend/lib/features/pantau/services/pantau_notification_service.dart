@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
@@ -105,7 +106,9 @@ class PantauNotificationService {
           await Future.delayed(const Duration(milliseconds: 500));
           FlutterOverlayWindow.shareData(
               'START_OVERLAY_CHECKIN:${DateTime.now().millisecondsSinceEpoch}:$sisaWaktu');
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[PantauService] Gagal tampilkan overlay check-in: $e');
+        }
       }
     }
 
@@ -128,7 +131,9 @@ class PantauNotificationService {
 
           try {
             await FlutterOverlayWindow.closeOverlay();
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('[PantauService] Gagal tutup overlay setelah aman: $e');
+          }
 
           updateNotification();
           service.invoke('status_aman_dikonfirmasi');
@@ -164,7 +169,9 @@ class PantauNotificationService {
               service.invoke('darurat_triggered');
               try {
                 await FlutterOverlayWindow.closeOverlay();
-              } catch (_) {}
+              } catch (e) {
+                debugPrint('[PantauService] Gagal tutup overlay darurat: $e');
+              }
             }
           }
         }
@@ -175,7 +182,9 @@ class PantauNotificationService {
       timer?.cancel();
       try {
         FlutterOverlayWindow.closeOverlay();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[PantauService] Gagal tutup overlay saat stop: $e');
+      }
       service.stopSelf();
     });
 

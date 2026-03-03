@@ -182,7 +182,9 @@ class _PantauCheckInViewState extends State<PantauCheckInView>
           Vibration.vibrate(duration: 200, amplitude: 150);
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[PantauCheckInView] Gagal vibrasi (sisa=$sisaDetik): $e');
+    }
   }
 
   @override

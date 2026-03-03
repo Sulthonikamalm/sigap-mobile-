@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 /// Flag file untuk sinkronisasi status AMAN antara overlay engine dan main engine.
 ///
@@ -27,7 +28,9 @@ class PantauAmanFlag {
       await File(_path).writeAsString(
         DateTime.now().millisecondsSinceEpoch.toString(),
       );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[PantauAmanFlag] Gagal tulis flag: $e');
+    }
   }
 
   /// Cek synchronous — untuk situasi yang butuh blocking check (lifecycle).
@@ -41,7 +44,8 @@ class PantauAmanFlag {
       if (timestamp == null) return false;
       final umurMs = DateTime.now().millisecondsSinceEpoch - timestamp;
       return umurMs >= 0 && umurMs < 120000;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[PantauAmanFlag] Gagal baca flag: $e');
       return false;
     }
   }
@@ -52,6 +56,8 @@ class PantauAmanFlag {
     try {
       final file = File(_path);
       if (file.existsSync()) file.deleteSync();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[PantauAmanFlag] Gagal hapus flag: $e');
+    }
   }
 }
