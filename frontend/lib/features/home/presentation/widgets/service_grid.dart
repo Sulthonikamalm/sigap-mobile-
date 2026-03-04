@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/lapor/presentation/pages/lapor_isu_page.dart';
 import 'package:sigap_mobile/features/pantau/presentation/pages/pantau_page.dart';
+import 'package:sigap_mobile/main.dart';
 
 // Import for Clean Architecture DI
 import 'package:provider/provider.dart';
@@ -147,6 +148,40 @@ class ServiceGrid extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+              _ServiceItem(
+                icon: Icons.location_on_rounded,
+                label: "Tes Darurat\n(Simulasi Notif)",
+                isLocked: isGuest,
+                onTap: isGuest
+                    ? () => _showLoginDialog(context)
+                    : () {
+                        // ==========================================================
+                        // SIMULASI ALUR NOTIFIKASI
+                        // ==========================================================
+                        // Tombol ini murni untuk pengetesan. Saat notifikasi FCM ditekan,
+                        // data di bawah ini akan masuk sebagai Map<String, dynamic>.
+                        // Kita lempar langsung ke handler agar alur parsing-nya ikut dites.
+
+                        final payloadPalsuDariFCM = {
+                          "type": "EMERGENCY_DISPATCH",
+                          "incident_id": "REQ-00234X",
+                          "lat": "-7.275000",
+                          "lng": "112.792000"
+                        };
+
+                        // Panggil resepsionis (handler) global yang ada di main.dart
+                        final berhasil =
+                            emergencyHandler.handlePayload(payloadPalsuDariFCM);
+
+                        if (!berhasil) {
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(const SnackBar(
+                            content: Text('Gagal mem-parsing payload darurat!'),
+                            backgroundColor: Colors.red,
+                          ));
+                        }
+                      },
               ),
             ],
           ),

@@ -4,29 +4,84 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:geolocator/geolocator.dart'; // Import GPS Heartbeat
 import 'package:sigap_mobile/features/pantau/services/pantau_aman_flag.dart';
+
+@pragma('vm:entry-point')
+void onNotificationActionTriggered(NotificationResponse response) {
+  if (response.actionId == 'btn_aman') {
+    debugPrint(
+        '[PantauNotificationService] SAYA AMAN ditekan dari luar aplikasi!');
+    // Tulis flag. Karena timer berjalan terus, di detik berikutnya ia akan membaca flag ini.
+    PantauAmanFlag.tulis();
+    // Tutup langsung notif berisik ini
+    FlutterLocalNotificationsPlugin()
+        .cancel(PantauNotificationService.stealthNotificationId);
+  }
+}
 
 class PantauNotificationService {
   static const String notificationChannelId = 'pantau_aman_channel';
+  static const String stealthChannelId =
+      'pantau_aman_stealth_channel'; // Channel SILUMAN untuk Korban
   static const int notificationId = 888;
+  static const int stealthNotificationId =
+      889; // ID notif khusus yang bergetar sangat halus
 
   static Future<void> initializeService() async {
     final service = FlutterBackgroundService();
 
+    // 1. Channel Biasa (Background Service standar)
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       notificationChannelId,
-      'Pantau Aman Service',
-      description: 'Menjalankan layanan pemantauan keamanan di background',
-      importance: Importance.high,
+      'Status Pantauan',
+      description: 'Menampilkan sisa waktu pantauan yang sedang berjalan',
+      importance: Importance
+          .low, // Dibuat low agar tidak bergetar setiap detik (saat countdown berjalan)
+    );
+
+    // 2. Channel STEALTH (Pengingat Check-In Korban yang Sunyi)
+    // Getar 2 kali dengan sangat cepat dan halus agar tidak mencolok
+    final Int64List stealthVibration = Int64List.fromList([0, 200, 100, 200]);
+
+    final AndroidNotificationChannel stealthChannel =
+        AndroidNotificationChannel(
+      stealthChannelId,
+      'Pengingat Halus Pantauan',
+      description: 'Pengingat getar halus saat waktu check-in tiba',
+      importance:
+          Importance.high, // Cukup High untuk muncul di layar, tidak MAX
+      enableVibration: true,
+      vibrationPattern: stealthVibration,
+      playSound: false, // MATIKAN SUARA DEMI KESELAMATAN KORBAN
     );
 
     final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
         FlutterLocalNotificationsPlugin();
 
+    // =========================================================
+    // INISIALISASI PLUGIN AGAR TOMBOL NOTIFIKASI BISA DITEKAN
+    // =========================================================
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
+
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveBackgroundNotificationResponse: onNotificationActionTriggered,
+    );
+
+    // Daftarkan kedua channel tersebut ke sistem Android
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(stealthChannel);
 
     await service.configure(
       androidConfiguration: AndroidConfiguration(
@@ -56,6 +111,8 @@ class PantauNotificationService {
     DartPluginRegistrant.ensureInitialized();
 
     Timer? timer;
+    Timer?
+        heartbeatTimer; // Timer Khusus untuk menyuplai Denyut Nadi GPS ke Backend
     int sisaWaktu = 0;
     int durasiAsli = 0;
     int stateInfo = 1; // 1: Pantauan Aktif, 2: Check-in, 3: Darurat
@@ -65,17 +122,76 @@ class PantauNotificationService {
       if (service is AndroidServiceInstance) {
         String title = "Sigap Pantau Aku";
         String content = "";
-        if (stateInfo == 1) {
-          content = "Pantauan Aktif. Cek dalam $sisaWaktu dtk";
-        } else if (stateInfo == 2) {
-          title = "⚠️ KONFIRMASI KEAMANAN!";
-          content = "Ketuk SAYA AMAN. (Sisa $sisaWaktu dtk)";
-        } else if (stateInfo == 3) {
-          title = "🚨 DARURAT!";
-          content = "Tanda bahaya telah dikirim otomatis!";
-        }
 
-        service.setForegroundNotificationInfo(title: title, content: content);
+        // --- STATUS 1: AMAN / COUNTDOWN BIASA ---
+        if (stateInfo == 1) {
+          int menit = sisaWaktu ~/ 60;
+          int detik = sisaWaktu % 60;
+          String waktuFormat =
+              '${menit.toString().padLeft(2, '0')}:${detik.toString().padLeft(2, '0')}';
+
+          title = "🛡️ Sigap: Pantauan Aktif";
+          content =
+              "Anda masih aman. Penelusuran diam-diam berjalan. Sisa: $waktuFormat";
+          service.setForegroundNotificationInfo(title: title, content: content);
+
+          // Hapus notif STEALTH jika sebelumnya ada (misal: user udah klik AMAN)
+          FlutterLocalNotificationsPlugin().cancel(stealthNotificationId);
+        }
+        // --- STATUS 2: MINTA CHECK-IN (ALERT!) ---
+        else if (stateInfo == 2) {
+          title = "🚨 WAKTUNYA LAPOR!";
+          content =
+              "Ketuk [SAYA AMAN] sekarang atau sinyal darurat dikirim dalam $sisaWaktu detik!";
+
+          // Foreground notif bawaan diperbarui secara diam-diam
+          service.setForegroundNotificationInfo(title: title, content: content);
+
+          // TEMBAKKAN GETARAN STEALTH HALUS (Hanya saat 30 detik & 15 detik terakhir)
+          // Tidak ditembakkan tiap detik agar tidak membuat panik.
+          if (sisaWaktu == 30 || sisaWaktu == 15) {
+            FlutterLocalNotificationsPlugin().show(
+              stealthNotificationId,
+              title,
+              content,
+              const NotificationDetails(
+                android: AndroidNotificationDetails(
+                  stealthChannelId,
+                  'Pengingat Halus Pantauan',
+                  importance: Importance.high,
+                  priority: Priority.high,
+                  enableVibration: true,
+                  playSound: false, // SUNyi
+                  fullScreenIntent:
+                      false, // JANGAN paksakan bangun layar secara norak
+                  actions: <AndroidNotificationAction>[
+                    AndroidNotificationAction(
+                      'btn_aman',
+                      '✅ SAYA AMAN',
+                      showsUserInterface:
+                          false, // Memungkinkan tombol bekerja tanpa harus membuka/unlock aplikasi
+                      cancelNotification:
+                          true, // Langsung buang notif setelah ditekan
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        }
+        // --- STATUS 3: DARURAT DIKIRIM (STEALTH MODE / MUTE) ---
+        // KORBAN DIASUMSIKAN SEDANG DALAM BAHAYA, JANGAN BUNYIKAN APAPUN!
+        else if (stateInfo == 3) {
+          title = "🔴 DARURAT TERKIRIM!";
+          content =
+              "Gagal Check-in. Lokasi Anda telah dibagikan ke pusat & responder terdekat.";
+
+          // HANYA perbarui tulisan notifikasi yang diam di background.
+          service.setForegroundNotificationInfo(title: title, content: content);
+
+          // HAPUS SEMUA pop-up / alarm peringatan jika masih menempel!
+          FlutterLocalNotificationsPlugin().cancel(stealthNotificationId);
+        }
       }
     }
 
@@ -120,7 +236,30 @@ class PantauNotificationService {
       stateInfo = 1;
 
       timer?.cancel();
+      heartbeatTimer?.cancel();
       updateNotification();
+
+      // --- [FITUR KEAMANAN: DEAD MAN'S SWITCH PING] ---
+      // Timer berdetak setiap 60 detik secara rahasia di background.
+      // Sinyal ini memastikan Server Go-Lang tahu bahwa korban masih online & tidak di blank spot.
+      heartbeatTimer = Timer.periodic(const Duration(seconds: 60), (t) async {
+        try {
+          final Position position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.medium,
+            timeLimit: const Duration(seconds: 15),
+          );
+
+          debugPrint('=========================================');
+          debugPrint('❤️ [HEARTBEAT] Mengirim Denyut Nadi Korban ke Server...');
+          debugPrint(
+              '   Lat: ${position.latitude}, Lng: ${position.longitude}');
+          debugPrint('   Status: $stateInfo');
+          debugPrint('   [API Backend Go-Lang menanti di sini]');
+          debugPrint('=========================================');
+        } catch (e) {
+          debugPrint('💔 [HEARTBEAT] Gagal mendapatkan GPS: $e');
+        }
+      });
 
       timer = Timer.periodic(const Duration(seconds: 1), (t) async {
         if (PantauAmanFlag.adaSync()) {
@@ -180,6 +319,7 @@ class PantauNotificationService {
 
     service.on('stop_service').listen((event) {
       timer?.cancel();
+      heartbeatTimer?.cancel();
       try {
         FlutterOverlayWindow.closeOverlay();
       } catch (e) {

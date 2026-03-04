@@ -384,36 +384,170 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 64,
-                    child: ElevatedButton(
-                      onPressed: _triggerAman,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppConstants.successColor,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Text(
-                        'AMAN \u2713',
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ),
+                  SwipeToConfirm(
+                    onConfirm: _triggerAman,
+                    backgroundColor:
+                        AppConstants.successColor.withValues(alpha: 0.1),
+                    thumbColor: AppConstants.successColor,
+                    textColor: AppConstants.successColor,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Komponen kustom untuk Swipe to Confirm (Menghindari "Kepencet di saku")
+class SwipeToConfirm extends StatefulWidget {
+  final VoidCallback onConfirm;
+  final Color backgroundColor;
+  final Color thumbColor;
+  final Color textColor;
+
+  const SwipeToConfirm({
+    super.key,
+    required this.onConfirm,
+    this.backgroundColor = const Color(0xFFF1F5F9),
+    this.thumbColor = const Color(0xFF10B981),
+    this.textColor = const Color(0xFF10B981),
+  });
+
+  @override
+  State<SwipeToConfirm> createState() => _SwipeToConfirmState();
+}
+
+class _SwipeToConfirmState extends State<SwipeToConfirm> {
+  double _position = 0.0;
+  bool _isConfirmed = false;
+  final double _height = 64.0;
+  final double _thumbSize = 52.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxWidth = constraints.maxWidth;
+        final double maxPosition =
+            maxWidth - _thumbSize - 12; // 6 offset dari kanan-kiri
+
+        return Container(
+          width: maxWidth,
+          height: _height,
+          decoration: BoxDecoration(
+            color: widget.backgroundColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: widget.thumbColor.withValues(alpha: 0.3), width: 1.5),
+          ),
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              // Teks di tengah
+              Center(
+                child: AnimatedOpacity(
+                  opacity: _isConfirmed ? 0.0 : 1.0 - (_position / maxPosition),
+                  duration: const Duration(milliseconds: 100),
+                  child: Text(
+                    'GESER UNTUK AMAN >>>',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: widget.textColor,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+
+              // Teks Confirmed
+              if (_isConfirmed)
+                Center(
+                  child: Text(
+                    'STATUS AMAN \u2713',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: widget.thumbColor,
+                    ),
+                  ),
+                ),
+
+              // The Thumb / Tombol Geser
+              AnimatedPositioned(
+                duration: _position == 0.0
+                    ? const Duration(milliseconds: 300)
+                    : Duration.zero,
+                curve: Curves.easeOutBack,
+                left: 6 + _position,
+                child: GestureDetector(
+                  onPanUpdate: (details) {
+                    if (_isConfirmed) return;
+                    setState(() {
+                      _position += details.delta.dx;
+                      if (_position < 0) _position = 0;
+                      if (_position > maxPosition) _position = maxPosition;
+                    });
+                  },
+                  onPanEnd: (details) {
+                    if (_isConfirmed) return;
+                    if (_position > maxPosition * 0.8) {
+                      // Confirmed! (Jika sudah lewat 80% lebar layar)
+                      setState(() {
+                        _position = maxPosition;
+                        _isConfirmed = true;
+                      });
+
+                      // Hasilkan getaran halus untuk tactile feedback saat sukses
+                      try {
+                        Vibration.vibrate(duration: 50, amplitude: 128);
+                      } catch (_) {}
+
+                      widget.onConfirm();
+                    } else {
+                      // Revert back
+                      setState(() {
+                        _position = 0;
+                      });
+                    }
+                  },
+                  child: Container(
+                    width: _thumbSize,
+                    height: _thumbSize,
+                    decoration: BoxDecoration(
+                      color:
+                          _isConfirmed ? Colors.transparent : widget.thumbColor,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: _isConfirmed
+                          ? null
+                          : [
+                              BoxShadow(
+                                color: widget.thumbColor.withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              )
+                            ],
+                    ),
+                    child: Center(
+                      child: Icon(
+                        _isConfirmed
+                            ? Icons.check_circle
+                            : Icons.keyboard_double_arrow_right_rounded,
+                        color: _isConfirmed ? widget.thumbColor : Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

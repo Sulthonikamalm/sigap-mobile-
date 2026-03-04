@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:sigap_mobile/features/pantau/domain/status_pantauan.dart';
 import 'package:sigap_mobile/features/pantau/services/pantau_aman_flag.dart';
 
@@ -315,7 +316,7 @@ class PantauService {
     _pastikanUiTimerAktif();
   }
 
-  void _prosesTimeoutCheckin() {
+  Future<void> _prosesTimeoutCheckin() async {
     // Guard: jangan proses duplikat
     if (_currentState is DaruratTerkirim) return;
 
@@ -339,6 +340,49 @@ class PantauService {
             '[PantauService] WARNING: NavigatorKey is null! Cannot navigate.');
       }
     });
+
+    // ==========================================================
+    // MENGAMBIL LOKASI KORBAN UNTUK PAYLOAD DARURAT
+    // ==========================================================
+    try {
+      debugPrint('[PantauService] Menjemput lokasi GPS korban...');
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (serviceEnabled &&
+          (permission == LocationPermission.whileInUse ||
+              permission == LocationPermission.always)) {
+        // Ambil lokasi terkini dengan batas waktu maks 10 detik agar tidak hang
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.best,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
+
+        // Bentuk Payload yang persis sama dengan yang akan ditangkap
+        // oleh EmergencyNotificationHandler di HP penolong nanti.
+        final emergencyPayload = {
+          "type": "EMERGENCY_DISPATCH",
+          "incident_id":
+              "REQ-${DateTime.now().millisecondsSinceEpoch}", // Generate ID unik sementara
+          "lat": position.latitude.toString(),
+          "lng": position.longitude.toString(),
+          "timestamp": DateTime.now().toIso8601String(),
+        };
+
+        debugPrint('====================================================');
+        debugPrint('🚨 PAYLOAD DARURAT SIAP DIKIRIM KE BACKEND/FCM: 🚨');
+        debugPrint(emergencyPayload.toString());
+        debugPrint('====================================================');
+        // Integrasi panggilan HTTP API dilakukan di fase Backend.
+      } else {
+        debugPrint(
+            '[PantauService] Gagal ambil lokasi: GPS mati / Izin ditolak');
+      }
+    } catch (e) {
+      debugPrint('[PantauService] Error ambil lokasi darurat: $e');
+    }
   }
 
   void _hentikanSemuaTimer() {
