@@ -49,8 +49,8 @@ class EmergencyNotificationHandler {
   /// 2. Fungsi untuk Menembakkan Sirine di layar Kunci Penolong
   /// (Dipanggil saat notifikasi FCM latar belakang masuk)
   static Future<void> showResponderSiren(String incidentId) async {
-    final title = "🆘 TEMAN ANDA BUTUH BANTUAN!";
-    final content = "Darurat! Ketuk untuk melacak lokasi secara LIVE.";
+    const title = "🆘 TEMAN ANDA BUTUH BANTUAN!";
+    const content = "Darurat! Ketuk untuk melacak lokasi secara LIVE.";
 
     await FlutterLocalNotificationsPlugin().show(
       responderNotificationId,

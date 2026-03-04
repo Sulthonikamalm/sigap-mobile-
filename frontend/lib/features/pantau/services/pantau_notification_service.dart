@@ -245,8 +245,10 @@ class PantauNotificationService {
       heartbeatTimer = Timer.periodic(const Duration(seconds: 60), (t) async {
         try {
           final Position position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.medium,
-            timeLimit: const Duration(seconds: 15),
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 15),
+            ),
           );
 
           debugPrint('=========================================');

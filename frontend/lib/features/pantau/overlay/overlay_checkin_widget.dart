@@ -22,7 +22,10 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
   double _opacity = 0.0;
   Timer? _backupTicker;
   Timer? _amanPumpTimer;
+  Timer? _timeoutPumpTimer; // FIX: Simpan timer timeout agar bisa di-cancel
   bool _isProcessingInput = false;
+  final GlobalKey<_SwipeToConfirmState> _swipeKey =
+      GlobalKey<_SwipeToConfirmState>();
 
   // FIX: Simpan subscription agar bisa di-cancel di dispose()
   StreamSubscription? _overlayListenerSubscription;
@@ -137,11 +140,15 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
     _timer?.cancel();
     _backupTicker?.cancel();
     _amanPumpTimer?.cancel();
+    _timeoutPumpTimer?.cancel(); // FIX: Bunuh timer timeout orphan
 
     _isStarted = false;
     _isProcessingInput = false;
     _opacity = 0.0;
     _isBaruSajaDiReset = true;
+
+    // FIX: Reset state SwipeToConfirm agar tidak macet "STATUS AMAN"
+    _swipeKey.currentState?.reset();
 
     PantauAmanFlag.hapus();
   }
@@ -220,6 +227,7 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
     _timer?.cancel();
     _backupTicker?.cancel();
     _amanPumpTimer?.cancel();
+    _timeoutPumpTimer?.cancel(); // FIX: Pastikan tidak ada timer orphan
     // FIX: Cancel stream subscription — mencegah memory leak
     _overlayListenerSubscription?.cancel();
     super.dispose();
@@ -288,7 +296,8 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
     });
 
     int attempts = 0;
-    Timer.periodic(const Duration(milliseconds: 250), (t) {
+    // FIX: Simpan timer ke variabel class agar bisa di-cancel saat stop/reset
+    _timeoutPumpTimer = Timer.periodic(const Duration(milliseconds: 250), (t) {
       if (!mounted || attempts > 10) {
         t.cancel();
         try {
@@ -344,56 +353,54 @@ class _OverlayCheckinWidgetState extends State<OverlayCheckinWidget> {
               ),
             ],
           ),
-          child: SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Konfirmasi Keamanan',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppConstants.textSecondary,
-                        ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Konfirmasi Keamanan',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppConstants.textSecondary,
                       ),
-                      Text(
-                        '$_sisaDetik dtk',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: progressColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(2),
-                    child: LinearProgressIndicator(
-                      value: _sisaDetik / _durasiCheckin,
-                      minHeight: 4,
-                      backgroundColor: Colors.grey.shade100,
-                      valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                     ),
+                    Text(
+                      '$_sisaDetik dtk',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: progressColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(
+                    value: _sisaDetik / _durasiCheckin,
+                    minHeight: 4,
+                    backgroundColor: Colors.grey.shade100,
+                    valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                   ),
-                  const SizedBox(height: 16),
-                  SwipeToConfirm(
-                    onConfirm: _triggerAman,
-                    backgroundColor:
-                        AppConstants.successColor.withValues(alpha: 0.1),
-                    thumbColor: AppConstants.successColor,
-                    textColor: AppConstants.successColor,
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+                SwipeToConfirm(
+                  key: _swipeKey, // FIX: GlobalKey untuk reset dari luar
+                  onConfirm: _triggerAman,
+                  backgroundColor:
+                      AppConstants.successColor.withValues(alpha: 0.1),
+                  thumbColor: AppConstants.successColor,
+                  textColor: AppConstants.successColor,
+                ),
+                const SizedBox(height: 24),
+              ],
             ),
           ),
         ),
@@ -426,6 +433,16 @@ class _SwipeToConfirmState extends State<SwipeToConfirm> {
   bool _isConfirmed = false;
   final double _height = 64.0;
   final double _thumbSize = 52.0;
+
+  /// FIX: Method publik untuk reset dari luar (via GlobalKey)
+  void reset() {
+    if (mounted) {
+      setState(() {
+        _position = 0.0;
+        _isConfirmed = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -477,7 +494,7 @@ class _SwipeToConfirmState extends State<SwipeToConfirm> {
                   ),
                 ),
 
-              // The Thumb / Tombol Geser
+              // Thumb / Tombol Geser — FIX: onHorizontalDrag mencegah konflik scroll
               AnimatedPositioned(
                 duration: _position == 0.0
                     ? const Duration(milliseconds: 300)
@@ -485,7 +502,7 @@ class _SwipeToConfirmState extends State<SwipeToConfirm> {
                 curve: Curves.easeOutBack,
                 left: 6 + _position,
                 child: GestureDetector(
-                  onPanUpdate: (details) {
+                  onHorizontalDragUpdate: (details) {
                     if (_isConfirmed) return;
                     setState(() {
                       _position += details.delta.dx;
@@ -493,23 +510,20 @@ class _SwipeToConfirmState extends State<SwipeToConfirm> {
                       if (_position > maxPosition) _position = maxPosition;
                     });
                   },
-                  onPanEnd: (details) {
+                  onHorizontalDragEnd: (details) {
                     if (_isConfirmed) return;
                     if (_position > maxPosition * 0.8) {
-                      // Confirmed! (Jika sudah lewat 80% lebar layar)
                       setState(() {
                         _position = maxPosition;
                         _isConfirmed = true;
                       });
 
-                      // Hasilkan getaran halus untuk tactile feedback saat sukses
                       try {
                         Vibration.vibrate(duration: 50, amplitude: 128);
                       } catch (_) {}
 
                       widget.onConfirm();
                     } else {
-                      // Revert back
                       setState(() {
                         _position = 0;
                       });
