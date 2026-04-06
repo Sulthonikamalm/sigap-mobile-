@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/app_shell/presentation/pages/main_screen.dart';
+import 'package:sigap_mobile/features/satgas_lite/presentation/pages/admin_lite_page.dart';
+import 'package:sigap_mobile/features/satgas_lite/presentation/pages/psikolog_lite_page.dart';
 
 class AuthCheckScreen extends StatelessWidget {
   const AuthCheckScreen({super.key});
@@ -104,6 +106,65 @@ class AuthCheckScreen extends StatelessWidget {
                     );
                   },
                 ),
+
+                const SizedBox(height: 32),
+
+                // ── Separator Satgas ──
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        'atau masuk sebagai Satgas',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Button: Masuk sebagai Admin
+                _buildPremiumButton(
+                  context,
+                  label: 'Masuk sebagai Admin',
+                  icon: Icons.admin_panel_settings_rounded,
+                  color: AppConstants.urgentColor,
+                  textColor: Colors.white,
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AdminLitePage(userName: 'Dev'),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // Button: Masuk sebagai Psikolog
+                _buildPremiumButton(
+                  context,
+                  label: 'Masuk sebagai Psikolog',
+                  icon: Icons.psychology_rounded,
+                  color: Colors.teal.shade600,
+                  textColor: Colors.white,
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PsikologLitePage(userName: 'Dev'),
+                      ),
+                    );
+                  },
+                ),
+
                 const Spacer(),
                 Text(
                   'Sigap Dev v0.1',
