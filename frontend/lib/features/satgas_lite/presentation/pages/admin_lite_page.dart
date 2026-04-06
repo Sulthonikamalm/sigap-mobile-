@@ -102,7 +102,7 @@ class _AdminLitePageState extends State<AdminLitePage> {
         children: [
           // Latar Belakang "Glow Orb" Khas Aplikasi
           const _BackgroundLayerLite(color: AppConstants.urgentColor),
-          
+
           Column(
             children: [
               _buildCleanHeader(),
@@ -121,7 +121,8 @@ class _AdminLitePageState extends State<AdminLitePage> {
                                 return KasusSiagaCard(
                                   item: item,
                                   swipeRightLabel: 'Terima & Proses',
-                                  swipeRightIcon: Icons.assignment_turned_in_rounded,
+                                  swipeRightIcon:
+                                      Icons.assignment_turned_in_rounded,
                                   swipeRightColor: Colors.green.shade600,
                                   swipeLeftLabel: 'Tolak',
                                   swipeLeftIcon: Icons.cancel_rounded,
@@ -177,10 +178,8 @@ class _AdminLitePageState extends State<AdminLitePage> {
             ),
             InkWell(
               onTap: () {
-                Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const AuthCheckScreen()));
+                Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (_) => const AuthCheckScreen()));
               },
               borderRadius: BorderRadius.circular(20),
               child: Container(
@@ -215,14 +214,16 @@ class _AdminLitePageState extends State<AdminLitePage> {
           children: [
             _buildStatCard('Darurat', '1', Icons.warning_rounded, Colors.red),
             const SizedBox(width: 16),
-            _buildStatCard('Diproses', '3', Icons.folder_rounded, AppConstants.primaryColor),
+            _buildStatCard('Diproses', '3', Icons.folder_rounded,
+                AppConstants.primaryColor),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatCard(String title, String count, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String title, String count, IconData icon, Color color) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -291,14 +292,18 @@ class _AdminLitePageState extends State<AdminLitePage> {
               onSelected: (val) {
                 setState(() => _filterActive = val);
               },
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
               itemBuilder: (context) => [
                 const PopupMenuItem(value: 'Terbaru', child: Text('Terbaru')),
-                const PopupMenuItem(value: 'Darurat', child: Text('Mendesak (Darurat)')),
-                const PopupMenuItem(value: 'Dispute', child: Text('Status Dispute')),
+                const PopupMenuItem(
+                    value: 'Darurat', child: Text('Mendesak (Darurat)')),
+                const PopupMenuItem(
+                    value: 'Dispute', child: Text('Status Dispute')),
               ],
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -397,7 +402,6 @@ class _BackgroundLayerLite extends StatelessWidget {
   }
 }
 
-
 /// Bottom Sheet untuk input alasan penolakan
 class _BottomSheetAlasanTolak extends StatefulWidget {
   final Function(String) onKirim;
@@ -470,7 +474,7 @@ class _BottomSheetAlasanTolakState extends State<_BottomSheetAlasanTolak> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: AppConstants.urgentColor),
+                borderSide: const BorderSide(color: AppConstants.urgentColor),
               ),
             ),
           ),

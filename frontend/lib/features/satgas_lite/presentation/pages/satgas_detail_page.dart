@@ -22,9 +22,9 @@ class SatgasDetailKasusPage extends StatelessWidget {
               color: AppConstants.textDark),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Detail Laporan',
-          style: const TextStyle(
+          style: TextStyle(
             color: AppConstants.textDark,
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -41,7 +41,7 @@ class SatgasDetailKasusPage extends StatelessWidget {
             // Header Info Kasus
             _buildInfoCard(accentColor, isDarurat),
             const SizedBox(height: 24),
-            
+
             // Deskripsi Penjelasan
             const Text(
               'Kronologi / Deskripsi',
@@ -120,7 +120,8 @@ class SatgasDetailKasusPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: accentColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -135,7 +136,8 @@ class SatgasDetailKasusPage extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: (isDarurat ? Colors.red : Colors.orange)
                       .withValues(alpha: 0.1),
@@ -172,13 +174,15 @@ class SatgasDetailKasusPage extends StatelessWidget {
             children: [
               Icon(Icons.person_pin, size: 20, color: Colors.grey),
               SizedBox(width: 8),
-              Text('Pelapor Anonim', style: TextStyle(fontWeight: FontWeight.w600)),
+              Text('Pelapor Anonim',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.date_range_rounded, size: 20, color: Colors.grey),
+              const Icon(Icons.date_range_rounded,
+                  size: 20, color: Colors.grey),
               const SizedBox(width: 8),
               Text(
                 'Masuk: ${item['waktu']}',
@@ -215,7 +219,9 @@ class SatgasDetailKasusPage extends StatelessWidget {
                   height: 14,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isActive ? AppConstants.primaryColor : Colors.grey.shade300,
+                    color: isActive
+                        ? AppConstants.primaryColor
+                        : Colors.grey.shade300,
                     border: Border.all(
                       color: isActive
                           ? AppConstants.primaryColor.withValues(alpha: 0.3)
@@ -243,7 +249,8 @@ class SatgasDetailKasusPage extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          isActive ? FontWeight.bold : FontWeight.normal,
                       color: isActive ? AppConstants.textDark : Colors.grey,
                     ),
                   ),

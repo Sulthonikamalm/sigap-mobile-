@@ -4,11 +4,15 @@ import 'package:sigap_mobile/core/constants/app_constants.dart';
 class ReportSearchBar extends StatelessWidget {
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
+  final bool enabled;
 
   const ReportSearchBar({
     super.key,
     this.controller,
     this.onChanged,
+    this.onSubmitted,
+    this.enabled = true,
   });
 
   @override
@@ -39,7 +43,11 @@ class ReportSearchBar extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
+              enabled: enabled,
               onChanged: onChanged,
+              onSubmitted: onSubmitted,
+              textInputAction: TextInputAction.search,
+              autocorrect: false,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,

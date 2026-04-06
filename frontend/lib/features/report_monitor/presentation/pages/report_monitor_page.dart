@@ -1,11 +1,209 @@
 import 'package:flutter/material.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
+import 'package:sigap_mobile/features/report_monitor/presentation/widgets/audit_trail_list.dart';
+import 'package:sigap_mobile/features/report_monitor/presentation/widgets/timeline_tracker.dart';
+import 'package:sigap_mobile/features/report_monitor/data/models/report_monitor_record.dart';
+import 'package:sigap_mobile/features/report_monitor/data/mock/mock_report_data.dart';
+import 'package:sigap_mobile/features/report_monitor/presentation/widgets/monitor_states/monitor_status_views.dart';
+import 'package:sigap_mobile/features/report_monitor/presentation/widgets/monitor_states/success_state_view.dart';
+import 'package:sigap_mobile/features/report_monitor/presentation/widgets/monitor_states/search_panel_view.dart';
 
-/// Halaman Pantau Laporan (Unified View)
-/// Tampilan sama untuk login maupun non-login demi privasi.
-/// User hanya bisa mencari laporan dengan ID anonim.
-class ReportMonitorPage extends StatelessWidget {
+enum MonitorState { empty, loading, error, success }
+
+class ReportMonitorPage extends StatefulWidget {
   const ReportMonitorPage({super.key});
+
+  @override
+  State<ReportMonitorPage> createState() => _ReportMonitorPageState();
+}
+
+class _ReportMonitorPageState extends State<ReportMonitorPage> {
+  final TextEditingController _searchController = TextEditingController();
+
+  MonitorState _state = MonitorState.empty;
+  String _errorMessage = '';
+  ReportMonitorRecord? _activeRecord;
+  int _searchRequestId = 0;
+
+  bool get _isLoading => _state == MonitorState.loading;
+
+  bool get _hasDraftSearch {
+    final activeCode = _activeRecord?.reportCode;
+    if (activeCode == null) {
+      return false;
+    }
+
+    return _normalizeQuery(_searchController.text) != activeCode;
+  }
+
+  Future<void> _performSearch() async {
+    FocusScope.of(context).unfocus();
+    final query = _normalizeQuery(_searchController.text);
+
+    if (query.isEmpty) {
+      setState(() {
+        _state = MonitorState.error;
+        _errorMessage = 'Silakan masukkan ID laporan terlebih dahulu.';
+      });
+      return;
+    }
+
+    final requestId = ++_searchRequestId;
+
+    setState(() {
+      _state = MonitorState.loading;
+      _errorMessage = '';
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+
+    if (!mounted || requestId != _searchRequestId) {
+      return;
+    }
+
+    final record = MockReportData.lookup(query);
+    if (record == null) {
+      setState(() {
+        _state = MonitorState.error;
+        _errorMessage =
+            'Laporan dengan ID "$query" tidak ditemukan. Periksa kembali kode yang Anda masukkan.';
+      });
+      return;
+    }
+
+    setState(() {
+      _activeRecord = record;
+      _state = MonitorState.success;
+    });
+  }
+
+  void _handleSearchInputChanged(String value) {
+    if (_state == MonitorState.error) {
+      setState(() {
+        _state = value.trim().isEmpty ? MonitorState.empty : MonitorState.error;
+        if (_state == MonitorState.empty) {
+          _errorMessage = '';
+        }
+      });
+      return;
+    }
+
+    if (_activeRecord != null) {
+      setState(() {});
+    }
+  }
+
+  void _handleAcceptRecommendation() {
+    final currentRecord = _activeRecord;
+    if (currentRecord == null ||
+        currentRecord.feedbackState != FeedbackActionState.waiting) {
+      return;
+    }
+
+    setState(() {
+      _activeRecord = currentRecord.copyWith(
+        statusLabel: 'TERKONFIRMASI',
+        statusIcon: Icons.verified_rounded,
+        statusColor: AppConstants.successColor,
+        timelineSteps: _markTimelineConfirmed(currentRecord.timelineSteps),
+        feedbackState: FeedbackActionState.accepted,
+        consultationNote:
+            '${currentRecord.consultationNote}\n\nKonfirmasi pelapor telah diterima oleh sistem.',
+        auditTrail: [
+          AuditTrailItem(
+            date: _buildNowLabel(),
+            description: 'Pelapor Menyetujui Tindak Lanjut',
+            details:
+                'Konfirmasi diterima melalui aplikasi mobile. Jadwal konseling dinyatakan sesuai.',
+          ),
+          ...currentRecord.auditTrail,
+        ],
+      );
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Konfirmasi Anda sudah diterima.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _handleRescheduleRequest() {
+    final currentRecord = _activeRecord;
+    if (currentRecord == null ||
+        currentRecord.feedbackState != FeedbackActionState.waiting) {
+      return;
+    }
+
+    setState(() {
+      _activeRecord = currentRecord.copyWith(
+        statusLabel: 'RESCHEDULE',
+        statusIcon: Icons.update_rounded,
+        statusColor: Colors.orange,
+        feedbackState: FeedbackActionState.rescheduleRequested,
+        consultationNote:
+            '${currentRecord.consultationNote}\n\nPelapor meminta penjadwalan ulang. Tim akan meninjau ulang jadwal.',
+        auditTrail: [
+          AuditTrailItem(
+            date: _buildNowLabel(),
+            description: 'Permintaan Reschedule Diajukan',
+            details:
+                'Pelapor meminta peninjauan jadwal lanjutan melalui aplikasi mobile.',
+          ),
+          ...currentRecord.auditTrail,
+        ],
+      );
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Permintaan reschedule berhasil dicatat.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  List<TimelineStepModel> _markTimelineConfirmed(
+    List<TimelineStepModel> steps,
+  ) {
+    if (steps.isEmpty) {
+      return steps;
+    }
+
+    return [
+      ...steps.take(steps.length - 1),
+      const TimelineStepModel(
+        title: 'Konfirmasi Pelapor',
+        description:
+            'Pelapor telah menyetujui tindak lanjut dan jadwal yang disarankan.',
+        date: 'Hari ini',
+        status: TimelineStatus.success,
+      ),
+    ];
+  }
+
+
+
+  String _normalizeQuery(String value) {
+    return value.trim().toUpperCase();
+  }
+
+  String _buildNowLabel() {
+    final now = DateTime.now();
+    final day = now.day.toString().padLeft(2, '0');
+    final month = now.month.toString().padLeft(2, '0');
+    final year = now.year.toString();
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+    return '$day/$month/$year, $hour:$minute';
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,35 +214,82 @@ class ReportMonitorPage extends StatelessWidget {
           children: [
             _buildHeader(context),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 16),
-                    _buildSearchBar(),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Masukkan ID laporan unik Anda untuk melihat perkembangan terkini',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade500,
-                        height: 1.5,
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 24),
+                          _buildSearchPanel(),
+                          if (_state == MonitorState.error) ...[
+                            const SizedBox(height: 20),
+                            _buildErrorBanner(),
+                          ],
+                          if (_hasDraftSearch) ...[
+                            const SizedBox(height: 16),
+                            _buildDraftInfoBanner(),
+                          ],
+                          const SizedBox(height: 24),
+                        ],
                       ),
                     ),
-                    Expanded(
-                      child: Center(
-                        child: _buildCenterIllustration(),
-                      ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: _buildContentArea(),
                     ),
-                  ],
-                ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                ],
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildSearchPanel() {
+    return SearchPanelView(
+      controller: _searchController,
+      isLoading: _isLoading,
+      onChanged: _handleSearchInputChanged,
+      onSearch: _performSearch,
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return ErrorBannerView(errorMessage: _errorMessage);
+  }
+
+  Widget _buildDraftInfoBanner() {
+    return DraftInfoBannerView(
+      currentCode: _activeRecord?.reportCode ?? '',
+    );
+  }
+
+  Widget _buildContentArea() {
+    switch (_state) {
+      case MonitorState.empty:
+        return const EmptyMonitorView();
+      case MonitorState.loading:
+        return const LoadingMonitorView();
+      case MonitorState.error:
+        return const NotFoundMonitorView();
+      case MonitorState.success:
+        final record = _activeRecord;
+        if (record == null) {
+          return const NotFoundMonitorView();
+        }
+        return SuccessMonitorView(
+          record: record,
+          onRescheduleRequest: _handleRescheduleRequest,
+          onAcceptRecommendation: _handleAcceptRecommendation,
+        );
+    }
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -80,7 +325,7 @@ class ReportMonitorPage extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Status Penanganan Laporan',
+                  'Pantau Progres Laporan Anda',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -92,156 +337,6 @@ class ReportMonitorPage extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Container(
-      height: 56,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 18),
-          const Icon(
-            Icons.search_rounded,
-            color: AppConstants.primaryColor,
-            size: 24,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: TextField(
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey.shade800,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Cari ID Laporan Anonim...',
-                hintStyle: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.grey.shade400,
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-          const SizedBox(width: 18),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCenterIllustration() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Background circle
-        Container(
-          width: 200,
-          height: 200,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppConstants.primaryColor.withValues(alpha: 0.05),
-          ),
-        ),
-        // Inner ring
-        Container(
-          width: 160,
-          height: 160,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: AppConstants.primaryColor.withValues(alpha: 0.15),
-              width: 1,
-            ),
-          ),
-        ),
-        // Main icon container
-        Container(
-          width: 120,
-          height: 120,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(36),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: AppConstants.primaryColor.withValues(alpha: 0.1),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.shield_rounded,
-            size: 56,
-            color: AppConstants.primaryColor,
-          ),
-        ),
-        // Fingerprint badge
-        Positioned(
-          top: 20,
-          right: 30,
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.shade200,
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.fingerprint_rounded,
-              size: 22,
-              color: Colors.purple.shade300,
-            ),
-          ),
-        ),
-        // Check badge
-        Positioned(
-          bottom: 30,
-          left: 40,
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.shade200,
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.check_rounded,
-              size: 18,
-              color: Colors.teal.shade400,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
