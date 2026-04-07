@@ -9,12 +9,14 @@ class SuccessMonitorView extends StatelessWidget {
   final ReportMonitorRecord record;
   final VoidCallback onRescheduleRequest;
   final VoidCallback onAcceptRecommendation;
+  final VoidCallback onDownloadPdf;
 
   const SuccessMonitorView({
     super.key,
     required this.record,
     required this.onRescheduleRequest,
     required this.onAcceptRecommendation,
+    required this.onDownloadPdf,
   });
 
   @override
@@ -23,7 +25,9 @@ class SuccessMonitorView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildResultHeader(record),
-        const SizedBox(height: 32),
+        const SizedBox(height: 16),
+        _buildDownloadPdfButton(),
+        const SizedBox(height: 16),
         Text(
           'Timeline Penanganan',
           style: TextStyle(
@@ -64,6 +68,28 @@ class SuccessMonitorView extends StatelessWidget {
         const SizedBox(height: 8),
         AuditTrailList(items: record.auditTrail),
       ],
+    );
+  }
+
+  Widget _buildDownloadPdfButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onDownloadPdf,
+        icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent),
+        label: const Text(
+          'Unduh Tiket & Laporan (PDF)',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          foregroundColor: AppConstants.textDark,
+          side: BorderSide(color: Colors.grey.shade300),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
     );
   }
 

@@ -1,68 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
+import '../notifiers/notification_notifier.dart';
 import '../../data/models/notification_record.dart';
-import '../../data/mock/mock_notification_data.dart';
 
-class NotificationPage extends StatefulWidget {
+/// Halaman Notifikasi — thin shell menggunakan Provider.
+///
+/// REFACTORED: Semua state & business logic dipindahkan ke
+/// [NotificationNotifier]. Halaman ini hanya melakukan:
+/// 1. Wiring Provider
+/// 2. Menampilkan UI berdasarkan state dari notifier
+/// 3. Mendelegasikan aksi user ke notifier
+class NotificationPage extends StatelessWidget {
   const NotificationPage({super.key});
 
   @override
-  State<NotificationPage> createState() => _NotificationPageState();
-}
-
-class _NotificationPageState extends State<NotificationPage> {
-  late List<NotificationRecord> _notifications;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadNotifications();
-  }
-
-  Future<void> _loadNotifications() async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-
-    setState(() {
-      _notifications = MockNotificationData.getNotifications();
-      _isLoading = false;
-    });
-  }
-
-  void _markAllAsRead() {
-    setState(() {
-      _notifications = _notifications.map((n) {
-        return n.isUnread ? n.copyWith(isUnread: false) : n;
-      }).toList();
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Semua notifikasi ditandai sudah dibaca'),
-        behavior: SnackBarBehavior.floating,
-      ),
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) {
+        final notifier = NotificationNotifier();
+        notifier.loadNotifications();
+        return notifier;
+      },
+      child: const _NotificationView(),
     );
   }
+}
 
-  void _markAsRead(String id) {
-    setState(() {
-      final index = _notifications.indexWhere((n) => n.id == id);
-      if (index != -1 && _notifications[index].isUnread) {
-        _notifications[index] = _notifications[index].copyWith(isUnread: false);
-      }
-    });
-  }
-
-  void _removeNotification(String id) {
-    setState(() {
-      _notifications.removeWhere((n) => n.id == id);
-    });
-  }
+class _NotificationView extends StatelessWidget {
+  const _NotificationView();
 
   @override
   Widget build(BuildContext context) {
+    final notifier = context.watch<NotificationNotifier>();
+
     return Scaffold(
       backgroundColor: AppConstants.backgroundColor,
       appBar: AppBar(
@@ -79,9 +50,9 @@ class _NotificationPageState extends State<NotificationPage> {
         ),
         iconTheme: const IconThemeData(color: AppConstants.textDark),
         actions: [
-          if (!_isLoading && _notifications.any((n) => n.isUnread))
+          if (!notifier.isLoading && notifier.unreadCount > 0)
             TextButton(
-              onPressed: _markAllAsRead,
+              onPressed: () => _handleMarkAllAsRead(context),
               child: const Text(
                 "Tandai Dibaca",
                 style: TextStyle(
@@ -93,37 +64,56 @@ class _NotificationPageState extends State<NotificationPage> {
             ),
         ],
       ),
-      body: _buildBody(),
+      body: _buildBody(context, notifier),
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
+  Future<void> _handleMarkAllAsRead(BuildContext context) async {
+    try {
+      await context.read<NotificationNotifier>().markAllAsRead();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Semua notifikasi ditandai sudah dibaca'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal memperbarui notifikasi. Coba lagi.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Widget _buildBody(BuildContext context, NotificationNotifier notifier) {
+    if (notifier.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppConstants.primaryColor),
       );
     }
 
-    if (_notifications.isEmpty) {
+    if (notifier.notifications.isEmpty) {
       return _buildEmptyState();
     }
 
     return RefreshIndicator(
-      onRefresh: () async {
-        setState(() => _isLoading = true);
-        await _loadNotifications();
-      },
+      onRefresh: () => notifier.loadNotifications(),
       color: AppConstants.primaryColor,
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: _notifications.length,
+        itemCount: notifier.notifications.length,
         itemBuilder: (context, index) {
-          final notif = _notifications[index];
+          final notif = notifier.notifications[index];
           final isFirst = index == 0;
 
           // Section header (Hari Ini / Kemarin / Lebih Lama)
           Widget? sectionHeader;
-          if (isFirst || notif.section != _notifications[index - 1].section) {
+          if (isFirst ||
+              notif.section != notifier.notifications[index - 1].section) {
             sectionHeader = Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
               child: Text(
@@ -148,16 +138,19 @@ class _NotificationPageState extends State<NotificationPage> {
                 background: Container(
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppConstants.errorColor,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.delete_outline, color: Colors.white),
+                  child:
+                      const Icon(Icons.delete_outline, color: Colors.white),
                 ),
-                onDismissed: (_) => _removeNotification(notif.id),
+                onDismissed: (_) =>
+                    _handleRemoveNotification(context, notif.id),
                 child: GestureDetector(
-                  onTap: () => _markAsRead(notif.id),
+                  onTap: () => notifier.markAsRead(notif.id),
                   child: _NotificationTile(notification: notif),
                 ),
               ),
@@ -166,6 +159,21 @@ class _NotificationPageState extends State<NotificationPage> {
         },
       ),
     );
+  }
+
+  Future<void> _handleRemoveNotification(
+      BuildContext context, String id) async {
+    try {
+      await context.read<NotificationNotifier>().removeNotification(id);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal menghapus notifikasi. Item dikembalikan.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Widget _buildEmptyState() {
@@ -208,6 +216,10 @@ class _NotificationPageState extends State<NotificationPage> {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────
+//  NOTIFICATION TILE
+// ─────────────────────────────────────────────────────
 
 class _NotificationTile extends StatelessWidget {
   final NotificationRecord notification;

@@ -1,98 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
-import 'package:sigap_mobile/core/widgets/blur_extension.dart';
+import 'package:sigap_mobile/features/satgas_lite/domain/entities/kasus_item.dart';
+import 'package:sigap_mobile/features/satgas_lite/data/repositories/mock_kasus_repository.dart';
+import 'package:sigap_mobile/features/satgas_lite/presentation/notifiers/satgas_notifier.dart';
 import 'package:sigap_mobile/features/satgas_lite/presentation/widgets/satgas_widgets.dart';
+import 'package:sigap_mobile/features/satgas_lite/presentation/widgets/shared_satgas_widgets.dart';
 import 'package:sigap_mobile/features/app_shell/presentation/pages/auth_check_screen.dart';
 
-class AdminLitePage extends StatefulWidget {
+class AdminLitePage extends StatelessWidget {
   final String userName;
 
   const AdminLitePage({super.key, required this.userName});
 
   @override
-  State<AdminLitePage> createState() => _AdminLitePageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<SatgasNotifier>(
+      create: (_) {
+        final notifier = SatgasNotifier(
+          repository: MockKasusRepository(role: SatgasRole.admin),
+        );
+        notifier.loadKasus();
+        return notifier;
+      },
+      child: _AdminLiteView(userName: userName),
+    );
+  }
 }
 
-class _AdminLitePageState extends State<AdminLitePage> {
-  // Mock Data
-  final List<Map<String, dynamic>> _mockAntrean = [
-    {
-      'id': 1,
-      'kode': 'KAS-9921',
-      'status': 'Darurat',
-      'info': 'Mahasiswa melaporkan ancaman fisik dengan bukti foto.',
-      'waktu': '2 mnt lalu',
-      'darurat': 'darurat',
-    },
-    {
-      'id': 2,
-      'kode': 'KAS-9920',
-      'status': 'Dispute',
-      'info': 'Banding terhadap putusan sanksi tingkat 2.',
-      'waktu': '1 jam lalu',
-      'darurat': 'normal',
-    },
-    {
-      'id': 3,
-      'kode': 'KAS-9915',
-      'status': 'Pending',
-      'info': 'Laporan pelecehan verbal melalui chat, menunggu proses.',
-      'waktu': '3 jam lalu',
-      'darurat': 'normal',
-    },
-  ];
+/// View murni — hanya membaca state dari [SatgasNotifier].
+class _AdminLiteView extends StatelessWidget {
+  final String userName;
 
-  String _filterActive = 'Terbaru';
-
-  void _onTerimaKasus(int index) {
-    setState(() {
-      _mockAntrean.removeAt(index);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle_rounded, color: Colors.white),
-            SizedBox(width: 10),
-            Text('Status kasus diperbarui: Diterima'),
-          ],
-        ),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
-
-  void _onTolakKasus(int index) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _BottomSheetAlasanTolak(
-        onKirim: (alasan) {
-          setState(() {
-            _mockAntrean.removeAt(index);
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Row(
-                children: [
-                  Icon(Icons.info_rounded, color: Colors.white),
-                  SizedBox(width: 10),
-                  Text('Kasus ditolak dan diarsipkan'),
-                ],
-              ),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-          );
-        },
-      ),
-    );
-  }
+  const _AdminLiteView({required this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -100,43 +40,33 @@ class _AdminLitePageState extends State<AdminLitePage> {
       backgroundColor: AppConstants.backgroundColor,
       body: Stack(
         children: [
-          // Latar Belakang "Glow Orb" Khas Aplikasi
-          const _BackgroundLayerLite(color: AppConstants.urgentColor),
-
+          const SatgasBackgroundLayer(color: AppConstants.urgentColor),
           Column(
             children: [
-              _buildCleanHeader(),
+              _AdminHeader(userName: userName),
               Expanded(
-                child: _mockAntrean.isEmpty
-                    ? _buildEmptyState()
-                    : CustomScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        slivers: [
-                          _buildSummaryCardsSliver(),
-                          _buildListHeaderSliver(),
-                          SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                final item = _mockAntrean[index];
-                                return KasusSiagaCard(
-                                  item: item,
-                                  swipeRightLabel: 'Terima & Proses',
-                                  swipeRightIcon:
-                                      Icons.assignment_turned_in_rounded,
-                                  swipeRightColor: Colors.green.shade600,
-                                  swipeLeftLabel: 'Tolak',
-                                  swipeLeftIcon: Icons.cancel_rounded,
-                                  swipeLeftColor: Colors.red.shade600,
-                                  onSwipeRight: () => _onTerimaKasus(index),
-                                  onSwipeLeft: () => _onTolakKasus(index),
-                                );
-                              },
-                              childCount: _mockAntrean.length,
-                            ),
+                child: Consumer<SatgasNotifier>(
+                  builder: (context, notifier, _) {
+                    return switch (notifier.state) {
+                      KasusInitial() || KasusLoading() =>
+                        const Center(
+                          child: CircularProgressIndicator(
+                            color: AppConstants.primaryColor,
                           ),
-                          const SliverToBoxAdapter(child: SizedBox(height: 30)),
-                        ],
-                      ),
+                        ),
+                      KasusError(message: final msg) =>
+                        Center(child: Text(msg)),
+                      KasusLoaded(items: final items) =>
+                        items.isEmpty
+                            ? const SatgasEmptyState(
+                                title: 'Antrean Kosong',
+                                subtitle: 'Tidak ada kasus yang\nmenunggu tindakan.',
+                                icon: Icons.inbox_outlined,
+                              )
+                            : _AdminKasusList(items: items),
+                    };
+                  },
+                ),
               ),
               const RambuDisiplinFooter(),
             ],
@@ -145,8 +75,19 @@ class _AdminLitePageState extends State<AdminLitePage> {
       ),
     );
   }
+}
 
-  Widget _buildCleanHeader() {
+// ─────────────────────────────────────────────────────
+//  ADMIN HEADER
+// ─────────────────────────────────────────────────────
+
+class _AdminHeader extends StatelessWidget {
+  final String userName;
+
+  const _AdminHeader({required this.userName});
+
+  @override
+  Widget build(BuildContext context) {
     return SafeArea(
       bottom: false,
       child: Padding(
@@ -167,7 +108,7 @@ class _AdminLitePageState extends State<AdminLitePage> {
                   ),
                 ),
                 Text(
-                  widget.userName,
+                  userName,
                   style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
@@ -178,8 +119,10 @@ class _AdminLitePageState extends State<AdminLitePage> {
             ),
             InkWell(
               onTap: () {
-                Navigator.pushReplacement(context,
-                    MaterialPageRoute(builder: (_) => const AuthCheckScreen()));
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AuthCheckScreen()),
+                );
               },
               borderRadius: BorderRadius.circular(20),
               child: Container(
@@ -205,204 +148,150 @@ class _AdminLitePageState extends State<AdminLitePage> {
       ),
     );
   }
-
-  Widget _buildSummaryCardsSliver() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-        child: Row(
-          children: [
-            _buildStatCard('Darurat', '1', Icons.warning_rounded, Colors.red),
-            const SizedBox(width: 16),
-            _buildStatCard('Diproses', '3', Icons.folder_rounded,
-                AppConstants.primaryColor),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(
-      String title, String count, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.grey.shade100),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              count,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                color: AppConstants.textDark,
-              ),
-            ),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildListHeaderSliver() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Antrean Laporan',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppConstants.textDark,
-              ),
-            ),
-            PopupMenuButton<String>(
-              onSelected: (val) {
-                setState(() => _filterActive = val);
-              },
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              itemBuilder: (context) => [
-                const PopupMenuItem(value: 'Terbaru', child: Text('Terbaru')),
-                const PopupMenuItem(
-                    value: 'Darurat', child: Text('Mendesak (Darurat)')),
-                const PopupMenuItem(
-                    value: 'Dispute', child: Text('Status Dispute')),
-              ],
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey.shade200),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      _filterActive,
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade700),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.keyboard_arrow_down_rounded,
-                        size: 16, color: Colors.grey.shade600),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.inbox_outlined, size: 60, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          const Text(
-            'Antrean Kosong',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppConstants.textDark),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tidak ada kasus yang\nmenunggu tindakan.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-// ----- BACKGROUND LAYER LITE (Gaya Original Vibe) -----
-class _BackgroundLayerLite extends StatelessWidget {
-  final Color color;
-  const _BackgroundLayerLite({required this.color});
+// ─────────────────────────────────────────────────────
+//  KASUS LIST
+// ─────────────────────────────────────────────────────
+
+class _AdminKasusList extends StatelessWidget {
+  final List<KasusItem> items;
+
+  const _AdminKasusList({required this.items});
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned(
-          top: -50,
-          right: -20,
-          child: Container(
-            width: 250,
-            height: 250,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color.withValues(alpha: 0.15),
+    final notifier = context.read<SatgasNotifier>();
+
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            child: Row(
+              children: [
+                SatgasStatCard(
+                  title: 'Darurat',
+                  count: notifier.jumlahDarurat.toString(),
+                  icon: Icons.warning_rounded,
+                  color: Colors.red,
+                ),
+                const SizedBox(width: 16),
+                SatgasStatCard(
+                  title: 'Diproses',
+                  count: notifier.totalAntrean.toString(),
+                  icon: Icons.folder_rounded,
+                  color: AppConstants.primaryColor,
+                ),
+              ],
             ),
-          ).blurred(blur: 80),
+          ),
         ),
-        Positioned(
-          top: 150,
-          left: -40,
-          child: Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppConstants.primaryColor.withValues(alpha: 0.1),
-            ),
-          ).blurred(blur: 80),
+        const SatgasListHeader(
+          title: 'Antrean Laporan',
+          filterOptions: [
+            KasusFilter.terbaru,
+            KasusFilter.mendesak,
+            KasusFilter.dispute,
+          ],
         ),
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final item = items[index];
+              return KasusSiagaCard(
+                item: item.toMap(),
+                swipeRightLabel: 'Terima & Proses',
+                swipeRightIcon: Icons.assignment_turned_in_rounded,
+                swipeRightColor: Colors.green.shade600,
+                swipeLeftLabel: 'Tolak',
+                swipeLeftIcon: Icons.cancel_rounded,
+                swipeLeftColor: Colors.red.shade600,
+                onSwipeRight: () => _onTerimaKasus(context, item),
+                onSwipeLeft: () => _onTolakKasus(context, item),
+              );
+            },
+            childCount: items.length,
+          ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 30)),
       ],
+    );
+  }
+
+  Future<void> _onTerimaKasus(BuildContext context, KasusItem item) async {
+    final notifier = context.read<SatgasNotifier>();
+    final result = await notifier.terimaKasus(item.id);
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              result.success
+                  ? Icons.check_circle_rounded
+                  : Icons.error_rounded,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Text(result.message)),
+          ],
+        ),
+        backgroundColor:
+            result.success ? Colors.green.shade600 : Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  void _onTolakKasus(BuildContext context, KasusItem item) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _BottomSheetAlasanTolak(
+        onKirim: (alasan) async {
+          final notifier = context.read<SatgasNotifier>();
+          final result = await notifier.tolakKasus(item.id, alasan);
+
+          if (!context.mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(
+                    result.success
+                        ? Icons.info_rounded
+                        : Icons.error_rounded,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(result.message)),
+                ],
+              ),
+              backgroundColor: result.success
+                  ? Colors.red.shade600
+                  : Colors.orange.shade600,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        },
+      ),
     );
   }
 }
 
-/// Bottom Sheet untuk input alasan penolakan
+// ─────────────────────────────────────────────────────
+//  BOTTOM SHEET ALASAN TOLAK
+// ─────────────────────────────────────────────────────
+
 class _BottomSheetAlasanTolak extends StatefulWidget {
   final Function(String) onKirim;
 
@@ -415,6 +304,12 @@ class _BottomSheetAlasanTolak extends StatefulWidget {
 
 class _BottomSheetAlasanTolakState extends State<_BottomSheetAlasanTolak> {
   final TextEditingController _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

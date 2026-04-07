@@ -1,87 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
-import 'package:sigap_mobile/core/widgets/blur_extension.dart';
+import 'package:sigap_mobile/features/satgas_lite/domain/entities/kasus_item.dart';
+import 'package:sigap_mobile/features/satgas_lite/data/repositories/mock_kasus_repository.dart';
+import 'package:sigap_mobile/features/satgas_lite/presentation/notifiers/satgas_notifier.dart';
 import 'package:sigap_mobile/features/satgas_lite/presentation/widgets/satgas_widgets.dart';
+import 'package:sigap_mobile/features/satgas_lite/presentation/widgets/shared_satgas_widgets.dart';
 import 'package:sigap_mobile/features/app_shell/presentation/pages/auth_check_screen.dart';
 
-class PsikologLitePage extends StatefulWidget {
+class PsikologLitePage extends StatelessWidget {
   final String userName;
 
   const PsikologLitePage({super.key, required this.userName});
 
   @override
-  State<PsikologLitePage> createState() => _PsikologLitePageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<SatgasNotifier>(
+      create: (_) {
+        final notifier = SatgasNotifier(
+          repository: MockKasusRepository(role: SatgasRole.psikolog),
+        );
+        notifier.loadKasus();
+        return notifier;
+      },
+      child: _PsikologLiteView(userName: userName),
+    );
+  }
 }
 
-class _PsikologLitePageState extends State<PsikologLitePage> {
-  // Mock Data
-  final List<Map<String, dynamic>> _mockJadwal = [
-    {
-      'id': 101,
-      'kode': 'KSL-8841',
-      'status': 'Terjadwal',
-      'info': 'Konseling kecemasan akademik (Virtual)',
-      'waktu': 'Hari ini, 14:00',
-      'darurat': 'normal',
-    },
-    {
-      'id': 102,
-      'kode': 'KSL-8842',
-      'status': 'Dispute',
-      'info': 'Rekomendasi cuti akademik ditolak prodi.',
-      'waktu': 'Besok, 09:00',
-      'darurat': 'darurat',
-    },
-  ];
+/// View murni — hanya membaca state dari [SatgasNotifier].
+class _PsikologLiteView extends StatelessWidget {
+  final String userName;
 
-  String _filterActive = 'Mendesak';
-
-  void _onMulaiSesi(int index) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.videocam_rounded, color: Colors.white),
-            SizedBox(width: 10),
-            Text('Link meeting dikirim ke mahasiswa'),
-          ],
-        ),
-        backgroundColor: Colors.blue.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
-
-  void _onBeriCatatan(int index) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _BottomSheetCatatanPsikolog(
-        onSimpan: (catatan) {
-          setState(() {
-            _mockJadwal.removeAt(index);
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Row(
-                children: [
-                  Icon(Icons.check_circle_rounded, color: Colors.white),
-                  SizedBox(width: 10),
-                  Text('Sesi ditutup & catatan tersimpan'),
-                ],
-              ),
-              backgroundColor: Colors.teal.shade600,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-          );
-        },
-      ),
-    );
-  }
+  const _PsikologLiteView({required this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -89,42 +40,33 @@ class _PsikologLitePageState extends State<PsikologLitePage> {
       backgroundColor: AppConstants.backgroundColor,
       body: Stack(
         children: [
-          // Latar Belakang "Glow Orb"
-          const _BackgroundLayerLite(color: Colors.teal),
-
+          const SatgasBackgroundLayer(color: Colors.teal),
           Column(
             children: [
-              _buildCleanHeader(),
+              _PsikologHeader(userName: userName),
               Expanded(
-                child: _mockJadwal.isEmpty
-                    ? _buildEmptyState()
-                    : CustomScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        slivers: [
-                          _buildSummaryCardsSliver(),
-                          _buildListHeaderSliver(),
-                          SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                final item = _mockJadwal[index];
-                                return KasusSiagaCard(
-                                  item: item,
-                                  swipeRightLabel: 'Mulai Sesi',
-                                  swipeRightIcon: Icons.play_arrow_rounded,
-                                  swipeRightColor: Colors.blue.shade600,
-                                  swipeLeftLabel: 'Selesai & Catat',
-                                  swipeLeftIcon: Icons.edit_note_rounded,
-                                  swipeLeftColor: Colors.teal.shade600,
-                                  onSwipeRight: () => _onMulaiSesi(index),
-                                  onSwipeLeft: () => _onBeriCatatan(index),
-                                );
-                              },
-                              childCount: _mockJadwal.length,
-                            ),
+                child: Consumer<SatgasNotifier>(
+                  builder: (context, notifier, _) {
+                    return switch (notifier.state) {
+                      KasusInitial() || KasusLoading() =>
+                        const Center(
+                          child: CircularProgressIndicator(
+                            color: AppConstants.primaryColor,
                           ),
-                          const SliverToBoxAdapter(child: SizedBox(height: 30)),
-                        ],
-                      ),
+                        ),
+                      KasusError(message: final msg) =>
+                        Center(child: Text(msg)),
+                      KasusLoaded(items: final items) =>
+                        items.isEmpty
+                            ? const SatgasEmptyState(
+                                title: 'Hari Ini Kosong',
+                                subtitle: 'Tidak ada jadwal konsultasi\nyang perlu ditangani.',
+                                icon: Icons.event_available_outlined,
+                              )
+                            : _PsikologKasusList(items: items),
+                    };
+                  },
+                ),
               ),
               const RambuDisiplinFooter(),
             ],
@@ -133,8 +75,19 @@ class _PsikologLitePageState extends State<PsikologLitePage> {
       ),
     );
   }
+}
 
-  Widget _buildCleanHeader() {
+// ─────────────────────────────────────────────────────
+//  PSIKOLOG HEADER
+// ─────────────────────────────────────────────────────
+
+class _PsikologHeader extends StatelessWidget {
+  final String userName;
+
+  const _PsikologHeader({required this.userName});
+
+  @override
+  Widget build(BuildContext context) {
     return SafeArea(
       bottom: false,
       child: Padding(
@@ -155,7 +108,7 @@ class _PsikologLitePageState extends State<PsikologLitePage> {
                   ),
                 ),
                 Text(
-                  'Psikolog ${widget.userName}',
+                  'Psikolog $userName',
                   style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
@@ -167,9 +120,9 @@ class _PsikologLitePageState extends State<PsikologLitePage> {
             InkWell(
               onTap: () {
                 Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const AuthCheckScreen()));
+                  context,
+                  MaterialPageRoute(builder: (_) => const AuthCheckScreen()),
+                );
               },
               borderRadius: BorderRadius.circular(20),
               child: Container(
@@ -195,198 +148,151 @@ class _PsikologLitePageState extends State<PsikologLitePage> {
       ),
     );
   }
-
-  Widget _buildSummaryCardsSliver() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-        child: Row(
-          children: [
-            _buildStatCard('Hari Ini', '2', Icons.calendar_today_rounded, Colors.blue),
-            const SizedBox(width: 16),
-            _buildStatCard('Menunggu', '1', Icons.hourglass_top_rounded, Colors.orange),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String title, String count, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.grey.shade100),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              count,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                color: AppConstants.textDark,
-              ),
-            ),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildListHeaderSliver() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Agenda Konsultasi',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppConstants.textDark,
-              ),
-            ),
-            PopupMenuButton<String>(
-              onSelected: (val) {
-                setState(() => _filterActive = val);
-              },
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              itemBuilder: (context) => [
-                const PopupMenuItem(value: 'Mendesak', child: Text('Mendesak')),
-                const PopupMenuItem(value: 'Hari Ini', child: Text('Hari Ini')),
-                const PopupMenuItem(value: 'Minggu Ini', child: Text('Minggu Ini')),
-              ],
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey.shade200),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      _filterActive,
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade700),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.filter_list_rounded,
-                        size: 16, color: Colors.grey.shade600),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.event_available_outlined, size: 60, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          const Text(
-            'Hari Ini Kosong',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppConstants.textDark),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tidak ada jadwal konsultasi\nyang perlu ditangani.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-// ----- BACKGROUND LAYER LITE (Gaya Original Vibe) -----
-class _BackgroundLayerLite extends StatelessWidget {
-  final Color color;
-  const _BackgroundLayerLite({required this.color});
+// ─────────────────────────────────────────────────────
+//  KASUS LIST
+// ─────────────────────────────────────────────────────
+
+class _PsikologKasusList extends StatelessWidget {
+  final List<KasusItem> items;
+
+  const _PsikologKasusList({required this.items});
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned(
-          top: -30,
-          right: -20,
-          child: Container(
-            width: 250,
-            height: 250,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color.withValues(alpha: 0.15),
+    final notifier = context.read<SatgasNotifier>();
+
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            child: Row(
+              children: [
+                SatgasStatCard(
+                  title: 'Hari Ini',
+                  count: notifier.totalAntrean.toString(),
+                  icon: Icons.calendar_today_rounded,
+                  color: Colors.blue,
+                ),
+                const SizedBox(width: 16),
+                SatgasStatCard(
+                  title: 'Menunggu',
+                  count: notifier.jumlahDarurat.toString(),
+                  icon: Icons.hourglass_top_rounded,
+                  color: Colors.orange,
+                ),
+              ],
             ),
-          ).blurred(blur: 80),
+          ),
         ),
-        Positioned(
-          top: 150,
-          left: -40,
-          child: Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppConstants.primaryColor.withValues(alpha: 0.1),
-            ),
-          ).blurred(blur: 80),
+        const SatgasListHeader(
+          title: 'Agenda Konsultasi',
+          filterOptions: [
+            KasusFilter.mendesak,
+            KasusFilter.hariIni,
+            KasusFilter.mingguIni,
+          ],
+          defaultFilter: KasusFilter.mendesak,
         ),
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final item = items[index];
+              return KasusSiagaCard(
+                item: item.toMap(),
+                swipeRightLabel: 'Mulai Sesi',
+                swipeRightIcon: Icons.play_arrow_rounded,
+                swipeRightColor: Colors.blue.shade600,
+                swipeLeftLabel: 'Selesai & Catat',
+                swipeLeftIcon: Icons.edit_note_rounded,
+                swipeLeftColor: Colors.teal.shade600,
+                onSwipeRight: () => _onMulaiSesi(context, item),
+                onSwipeLeft: () => _onBeriCatatan(context, item),
+              );
+            },
+            childCount: items.length,
+          ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 30)),
       ],
+    );
+  }
+
+  Future<void> _onMulaiSesi(BuildContext context, KasusItem item) async {
+    final notifier = context.read<SatgasNotifier>();
+    final result = await notifier.mulaiSesi(item.id);
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              result.success
+                  ? Icons.videocam_rounded
+                  : Icons.error_rounded,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Text(result.message)),
+          ],
+        ),
+        backgroundColor:
+            result.success ? Colors.blue.shade600 : Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  void _onBeriCatatan(BuildContext context, KasusItem item) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _BottomSheetCatatanPsikolog(
+        onSimpan: (catatan) async {
+          final notifier = context.read<SatgasNotifier>();
+          final result = await notifier.selesaikanSesi(item.id, catatan);
+
+          if (!context.mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(
+                    result.success
+                        ? Icons.check_circle_rounded
+                        : Icons.error_rounded,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(result.message)),
+                ],
+              ),
+              backgroundColor: result.success
+                  ? Colors.teal.shade600
+                  : Colors.red.shade600,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        },
+      ),
     );
   }
 }
 
-/// Bottom Sheet untuk input catatan P3K Psikologi
+// ─────────────────────────────────────────────────────
+//  BOTTOM SHEET CATATAN PSIKOLOG
+// ─────────────────────────────────────────────────────
+
 class _BottomSheetCatatanPsikolog extends StatefulWidget {
   final Function(String) onSimpan;
 
@@ -400,6 +306,12 @@ class _BottomSheetCatatanPsikolog extends StatefulWidget {
 class _BottomSheetCatatanPsikologState
     extends State<_BottomSheetCatatanPsikolog> {
   final TextEditingController _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -426,8 +338,8 @@ class _BottomSheetCatatanPsikologState
                   color: Colors.teal.shade50,
                   shape: BoxShape.circle,
                 ),
-                child:
-                    Icon(Icons.medical_services_rounded, color: Colors.teal.shade600),
+                child: Icon(Icons.medical_services_rounded,
+                    color: Colors.teal.shade600),
               ),
               const SizedBox(width: 12),
               const Text(

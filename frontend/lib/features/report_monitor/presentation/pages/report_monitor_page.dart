@@ -1,208 +1,142 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sigap_mobile/core/constants/app_constants.dart';
-import 'package:sigap_mobile/features/report_monitor/presentation/widgets/audit_trail_list.dart';
-import 'package:sigap_mobile/features/report_monitor/presentation/widgets/timeline_tracker.dart';
-import 'package:sigap_mobile/features/report_monitor/data/models/report_monitor_record.dart';
-import 'package:sigap_mobile/features/report_monitor/data/mock/mock_report_data.dart';
+import 'package:sigap_mobile/features/report_monitor/presentation/notifiers/report_monitor_notifier.dart';
 import 'package:sigap_mobile/features/report_monitor/presentation/widgets/monitor_states/monitor_status_views.dart';
 import 'package:sigap_mobile/features/report_monitor/presentation/widgets/monitor_states/success_state_view.dart';
 import 'package:sigap_mobile/features/report_monitor/presentation/widgets/monitor_states/search_panel_view.dart';
 
-enum MonitorState { empty, loading, error, success }
-
-class ReportMonitorPage extends StatefulWidget {
+/// Halaman Pantau Laporan — thin shell menggunakan Provider.
+///
+/// REFACTORED: Semua state (_state, _activeRecord, _searchRequestId)
+/// dan business logic (search, accept, reschedule, download)
+/// dipindahkan ke [ReportMonitorNotifier].
+class ReportMonitorPage extends StatelessWidget {
   const ReportMonitorPage({super.key});
 
   @override
-  State<ReportMonitorPage> createState() => _ReportMonitorPageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => ReportMonitorNotifier(),
+      child: const _ReportMonitorView(),
+    );
+  }
 }
 
-class _ReportMonitorPageState extends State<ReportMonitorPage> {
+class _ReportMonitorView extends StatefulWidget {
+  const _ReportMonitorView();
+
+  @override
+  State<_ReportMonitorView> createState() => _ReportMonitorViewState();
+}
+
+class _ReportMonitorViewState extends State<_ReportMonitorView> {
   final TextEditingController _searchController = TextEditingController();
-
-  MonitorState _state = MonitorState.empty;
-  String _errorMessage = '';
-  ReportMonitorRecord? _activeRecord;
-  int _searchRequestId = 0;
-
-  bool get _isLoading => _state == MonitorState.loading;
-
-  bool get _hasDraftSearch {
-    final activeCode = _activeRecord?.reportCode;
-    if (activeCode == null) {
-      return false;
-    }
-
-    return _normalizeQuery(_searchController.text) != activeCode;
-  }
-
-  Future<void> _performSearch() async {
-    FocusScope.of(context).unfocus();
-    final query = _normalizeQuery(_searchController.text);
-
-    if (query.isEmpty) {
-      setState(() {
-        _state = MonitorState.error;
-        _errorMessage = 'Silakan masukkan ID laporan terlebih dahulu.';
-      });
-      return;
-    }
-
-    final requestId = ++_searchRequestId;
-
-    setState(() {
-      _state = MonitorState.loading;
-      _errorMessage = '';
-    });
-
-    await Future<void>.delayed(const Duration(milliseconds: 900));
-
-    if (!mounted || requestId != _searchRequestId) {
-      return;
-    }
-
-    final record = MockReportData.lookup(query);
-    if (record == null) {
-      setState(() {
-        _state = MonitorState.error;
-        _errorMessage =
-            'Laporan dengan ID "$query" tidak ditemukan. Periksa kembali kode yang Anda masukkan.';
-      });
-      return;
-    }
-
-    setState(() {
-      _activeRecord = record;
-      _state = MonitorState.success;
-    });
-  }
-
-  void _handleSearchInputChanged(String value) {
-    if (_state == MonitorState.error) {
-      setState(() {
-        _state = value.trim().isEmpty ? MonitorState.empty : MonitorState.error;
-        if (_state == MonitorState.empty) {
-          _errorMessage = '';
-        }
-      });
-      return;
-    }
-
-    if (_activeRecord != null) {
-      setState(() {});
-    }
-  }
-
-  void _handleAcceptRecommendation() {
-    final currentRecord = _activeRecord;
-    if (currentRecord == null ||
-        currentRecord.feedbackState != FeedbackActionState.waiting) {
-      return;
-    }
-
-    setState(() {
-      _activeRecord = currentRecord.copyWith(
-        statusLabel: 'TERKONFIRMASI',
-        statusIcon: Icons.verified_rounded,
-        statusColor: AppConstants.successColor,
-        timelineSteps: _markTimelineConfirmed(currentRecord.timelineSteps),
-        feedbackState: FeedbackActionState.accepted,
-        consultationNote:
-            '${currentRecord.consultationNote}\n\nKonfirmasi pelapor telah diterima oleh sistem.',
-        auditTrail: [
-          AuditTrailItem(
-            date: _buildNowLabel(),
-            description: 'Pelapor Menyetujui Tindak Lanjut',
-            details:
-                'Konfirmasi diterima melalui aplikasi mobile. Jadwal konseling dinyatakan sesuai.',
-          ),
-          ...currentRecord.auditTrail,
-        ],
-      );
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Konfirmasi Anda sudah diterima.'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _handleRescheduleRequest() {
-    final currentRecord = _activeRecord;
-    if (currentRecord == null ||
-        currentRecord.feedbackState != FeedbackActionState.waiting) {
-      return;
-    }
-
-    setState(() {
-      _activeRecord = currentRecord.copyWith(
-        statusLabel: 'RESCHEDULE',
-        statusIcon: Icons.update_rounded,
-        statusColor: Colors.orange,
-        feedbackState: FeedbackActionState.rescheduleRequested,
-        consultationNote:
-            '${currentRecord.consultationNote}\n\nPelapor meminta penjadwalan ulang. Tim akan meninjau ulang jadwal.',
-        auditTrail: [
-          AuditTrailItem(
-            date: _buildNowLabel(),
-            description: 'Permintaan Reschedule Diajukan',
-            details:
-                'Pelapor meminta peninjauan jadwal lanjutan melalui aplikasi mobile.',
-          ),
-          ...currentRecord.auditTrail,
-        ],
-      );
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Permintaan reschedule berhasil dicatat.'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  List<TimelineStepModel> _markTimelineConfirmed(
-    List<TimelineStepModel> steps,
-  ) {
-    if (steps.isEmpty) {
-      return steps;
-    }
-
-    return [
-      ...steps.take(steps.length - 1),
-      const TimelineStepModel(
-        title: 'Konfirmasi Pelapor',
-        description:
-            'Pelapor telah menyetujui tindak lanjut dan jadwal yang disarankan.',
-        date: 'Hari ini',
-        status: TimelineStatus.success,
-      ),
-    ];
-  }
-
-
-
-  String _normalizeQuery(String value) {
-    return value.trim().toUpperCase();
-  }
-
-  String _buildNowLabel() {
-    final now = DateTime.now();
-    final day = now.day.toString().padLeft(2, '0');
-    final month = now.month.toString().padLeft(2, '0');
-    final year = now.year.toString();
-    final hour = now.hour.toString().padLeft(2, '0');
-    final minute = now.minute.toString().padLeft(2, '0');
-    return '$day/$month/$year, $hour:$minute';
-  }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearch() {
+    FocusScope.of(context).unfocus();
+    context.read<ReportMonitorNotifier>().performSearch(_searchController.text);
+  }
+
+  void _onInputChanged(String value) {
+    context.read<ReportMonitorNotifier>().onSearchInputChanged(value);
+  }
+
+  Future<void> _handleAcceptRecommendation() async {
+    try {
+      await context.read<ReportMonitorNotifier>().acceptRecommendation();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Konfirmasi Anda sudah diterima.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengirim konfirmasi: ${e.toString()}'),
+          backgroundColor: AppConstants.errorColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleRescheduleRequest() async {
+    try {
+      await context.read<ReportMonitorNotifier>().requestReschedule();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Permintaan reschedule berhasil dicatat.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengirim reschedule: ${e.toString()}'),
+          backgroundColor: AppConstants.errorColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleDownloadPdf() async {
+    final notifier = context.read<ReportMonitorNotifier>();
+
+    // Tampilkan loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: AppConstants.primaryColor),
+      ),
+    );
+
+    try {
+      await notifier.downloadPdf();
+      if (!mounted) return;
+      Navigator.pop(context); // Tutup loading dialog
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.download_done_rounded, color: Colors.white),
+              SizedBox(width: 10),
+              Expanded(
+                  child: Text(
+                      'Dokumen PDF berhasil diunduh ke perangkat Anda.')),
+            ],
+          ),
+          backgroundColor: AppConstants.successColor,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Tutup dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengunduh dokumen: $e'),
+          backgroundColor: AppConstants.errorColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -214,36 +148,59 @@ class _ReportMonitorPageState extends State<ReportMonitorPage> {
           children: [
             _buildHeader(context),
             Expanded(
-              child: CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 24),
-                          _buildSearchPanel(),
-                          if (_state == MonitorState.error) ...[
-                            const SizedBox(height: 20),
-                            _buildErrorBanner(),
-                          ],
-                          if (_hasDraftSearch) ...[
-                            const SizedBox(height: 16),
-                            _buildDraftInfoBanner(),
-                          ],
-                          const SizedBox(height: 24),
-                        ],
+              child: Consumer<ReportMonitorNotifier>(
+                builder: (context, notifier, _) {
+                  final isLoading = notifier.state is MonitorLoading;
+
+                  return CustomScrollView(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 24),
+                              SearchPanelView(
+                                controller: _searchController,
+                                isLoading: isLoading,
+                                onChanged: _onInputChanged,
+                                onSearch: _onSearch,
+                              ),
+                              if (notifier.state is MonitorError) ...[
+                                const SizedBox(height: 20),
+                                ErrorBannerView(
+                                  errorMessage:
+                                      (notifier.state as MonitorError)
+                                          .message,
+                                ),
+                              ],
+                              if (notifier.hasDraftSearch(
+                                  _searchController.text)) ...[
+                                const SizedBox(height: 16),
+                                DraftInfoBannerView(
+                                  currentCode:
+                                      notifier.activeRecord?.reportCode ??
+                                          '',
+                                ),
+                              ],
+                              const SizedBox(height: 24),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildContentArea(),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
-                ],
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 20),
+                          child: _buildContentArea(notifier),
+                        ),
+                      ),
+                      const SliverToBoxAdapter(
+                          child: SizedBox(height: 40)),
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -252,44 +209,18 @@ class _ReportMonitorPageState extends State<ReportMonitorPage> {
     );
   }
 
-  Widget _buildSearchPanel() {
-    return SearchPanelView(
-      controller: _searchController,
-      isLoading: _isLoading,
-      onChanged: _handleSearchInputChanged,
-      onSearch: _performSearch,
-    );
-  }
-
-  Widget _buildErrorBanner() {
-    return ErrorBannerView(errorMessage: _errorMessage);
-  }
-
-  Widget _buildDraftInfoBanner() {
-    return DraftInfoBannerView(
-      currentCode: _activeRecord?.reportCode ?? '',
-    );
-  }
-
-  Widget _buildContentArea() {
-    switch (_state) {
-      case MonitorState.empty:
-        return const EmptyMonitorView();
-      case MonitorState.loading:
-        return const LoadingMonitorView();
-      case MonitorState.error:
-        return const NotFoundMonitorView();
-      case MonitorState.success:
-        final record = _activeRecord;
-        if (record == null) {
-          return const NotFoundMonitorView();
-        }
-        return SuccessMonitorView(
+  Widget _buildContentArea(ReportMonitorNotifier notifier) {
+    return switch (notifier.state) {
+      MonitorEmpty() => const EmptyMonitorView(),
+      MonitorLoading() => const LoadingMonitorView(),
+      MonitorError() => const NotFoundMonitorView(),
+      MonitorSuccess(record: final record) => SuccessMonitorView(
           record: record,
           onRescheduleRequest: _handleRescheduleRequest,
           onAcceptRecommendation: _handleAcceptRecommendation,
-        );
-    }
+          onDownloadPdf: _handleDownloadPdf,
+        ),
+    };
   }
 
   Widget _buildHeader(BuildContext context) {

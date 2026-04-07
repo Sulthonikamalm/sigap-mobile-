@@ -49,7 +49,7 @@ class _ArticleSearchPageState extends State<ArticleSearchPage> {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
 
     // Debounce to prevent stutter
-    _debounce = Timer(const Duration(milliseconds: 300), () {
+    _debounce = Timer(const Duration(milliseconds: 300), () async {
       if (query.isEmpty) {
         setState(() {
           _searchResults = [];
@@ -62,14 +62,22 @@ class _ArticleSearchPageState extends State<ArticleSearchPage> {
         _isSearching = true;
       });
 
-      _repository.searchArticles(query).then((results) {
+      try {
+        final results = await _repository.searchArticles(query);
         if (mounted) {
           setState(() {
             _searchResults = results;
             _isSearching = false;
           });
         }
-      });
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _searchResults = [];
+            _isSearching = false;
+          });
+        }
+      }
     });
   }
 

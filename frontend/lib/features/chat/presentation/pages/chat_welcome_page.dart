@@ -17,6 +17,9 @@ class _ChatWelcomePageState extends State<ChatWelcomePage>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  /// Lock navigasi — mencegah double/triple-tap push multiple route.
+  bool _isNavigating = false;
+
   @override
   void initState() {
     super.initState();
@@ -44,9 +47,13 @@ class _ChatWelcomePageState extends State<ChatWelcomePage>
     super.dispose();
   }
 
-  void _navigateToChat() {
+  Future<void> _navigateToChat() async {
+    // Cegah double/triple-tap push multiple route ke stack
+    if (_isNavigating) return;
+    setState(() => _isNavigating = true);
+
     // DeepAnimation: Navigasi dengan Hero transition + slide smoothing
-    Navigator.push(
+    await Navigator.push(
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
@@ -78,6 +85,11 @@ class _ChatWelcomePageState extends State<ChatWelcomePage>
         },
       ),
     );
+
+    // Release lock saat user kembali dari ChatPage
+    if (mounted) {
+      setState(() => _isNavigating = false);
+    }
   }
 
   @override
@@ -192,7 +204,7 @@ class _ChatWelcomePageState extends State<ChatWelcomePage>
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: _navigateToChat,
+                      onPressed: _isNavigating ? null : _navigateToChat,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppConstants.primaryColor,
                         shadowColor:
