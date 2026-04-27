@@ -60,7 +60,7 @@ class _NotificationView extends StatelessWidget {
                   color: AppConstants.primaryColor,
                   fontWeight: FontWeight.w600,
                 ),
-              ),
+              ), 
             ),
         ],
       ),

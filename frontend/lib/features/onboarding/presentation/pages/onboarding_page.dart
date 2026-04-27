@@ -4,11 +4,13 @@ import 'package:sigap_mobile/core/constants/app_constants.dart';
 import 'package:sigap_mobile/features/onboarding/data/onboarding_data.dart';
 import 'package:sigap_mobile/features/onboarding/presentation/widgets/onboarding_indikator.dart';
 import 'package:sigap_mobile/features/onboarding/presentation/widgets/onboarding_slide.dart';
-import 'package:sigap_mobile/features/app_shell/presentation/pages/auth_check_screen.dart';
+import 'package:sigap_mobile/features/auth/presentation/pages/masuk_page.dart';
+import 'package:sigap_mobile/features/auth/presentation/pages/daftar_page.dart';
 
 /// Halaman onboarding — tampil pertama kali saat user membuka app.
 ///
-/// Alur: Geser 3 slide → tekan "Mulai Sekarang" → AuthCheckScreen
+/// Alur: Geser 3 slide → "Mulai Sekarang" → MasukPage (Login)
+///                       → "Daftar dulu"    → DaftarPage (Register)
 /// Referensi tata letak: Gojek onboarding (PageView + dot + CTA bawah).
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -50,12 +52,26 @@ class _OnboardingPageState extends State<OnboardingPage>
     super.dispose();
   }
 
-  /// Navigasi ke halaman auth check (pilih login / guest)
-  void _navigasiKeAuth() {
+  /// Navigasi ke halaman masuk (login)
+  void _navigasiKeMasuk() {
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const AuthCheckScreen(),
+        pageBuilder: (_, __, ___) => const MasukPage(),
+        transitionsBuilder: (_, animasi, __, child) {
+          return FadeTransition(opacity: animasi, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+    );
+  }
+
+  /// Navigasi ke halaman daftar (register)
+  void _navigasiKeDaftar() {
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const DaftarPage(),
         transitionsBuilder: (_, animasi, __, child) {
           return FadeTransition(opacity: animasi, child: child);
         },
@@ -169,7 +185,7 @@ class _OnboardingPageState extends State<OnboardingPage>
             width: double.infinity,
             height: 54,
             child: ElevatedButton(
-              onPressed: _navigasiKeAuth,
+              onPressed: _navigasiKeMasuk,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppConstants.primaryColor,
                 foregroundColor: Colors.white,
@@ -196,7 +212,7 @@ class _OnboardingPageState extends State<OnboardingPage>
             width: double.infinity,
             height: 54,
             child: OutlinedButton(
-              onPressed: _navigasiKeAuth,
+              onPressed: _navigasiKeDaftar,
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.grey.shade800,
                 side: BorderSide(color: Colors.grey.shade300, width: 1.5),
